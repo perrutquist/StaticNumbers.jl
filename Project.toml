@@ -2,3 +2,6 @@ name = "FixedNumbers"
 uuid = "dc9d3b2e-a12c-11e8-27a8-6555b9654398"
 authors = ["Per Rutquist <per.rutquist@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
