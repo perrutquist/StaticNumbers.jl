@@ -1,0 +1,4 @@
+name = "FixedNumbers"
+uuid = "dc9d3b2e-a12c-11e8-27a8-6555b9654398"
+authors = ["Per Rutquist <per.rutquist@gmail.com>"]
+version = "0.1.0"
