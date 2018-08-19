@@ -10,15 +10,12 @@ contains no runtime data.
 """
 struct FixedInteger{X} <: Integer
     function FixedInteger{X}() where {X}
-        X isa Integer && isimmutable(X) || throw(FixedError)
+        X isa Integer && !(X isa Fixed) && isimmutable(X) || throw(FixedError)
         new{X}()
     end
 end
 
 FixedInteger(x::Integer) = FixedInteger{x}()
-FixedInteger(x::Bool) = FixedInteger{Int(x)}() # Use FixedInteger{false}() if you must...
-Base.convert(::Type{FixedInteger{X}}, y::Number) where {X} = FixedInteger{X}() == y ? x : InexactError(:convert, FixedInteger{X}(), y)
-Base.convert(::Type{T}, ::FixedInteger{X}) where {T<:Number,X} = convert(T, X)
 
 """
 A `FixedReal` is a `Real` whose value is stored in the type, and which
@@ -26,14 +23,12 @@ contains no runtime data.
 """
 struct FixedReal{X} <: Real
     function FixedReal{X}() where {X}
-        X isa Real && isimmutable(X) || throw(FixedError)
+        X isa Real && !(X isa Integer) && !(X isa Fixed) && isimmutable(X) || throw(FixedError)
         new{X}()
     end
 end
 
 FixedReal(x::Real) = FixedReal{x}()
-Base.convert(x::Type{FixedReal{X}}, y::Number) where {X} = X == y ? FixedReal{X}() : InexactError(:convert, FixedReal{X}(), y)
-Base.convert(::Type{T}, ::FixedReal{X}) where {T<:Number,X} = convert(T, X)
 
 """
 A `FixedNumber` is a `Number` whose value is stored in the type, and which
@@ -41,35 +36,60 @@ contains no runtime data.
 """
 struct FixedNumber{X} <: Number
     function FixedNumber{X}() where {X}
-        X isa Number && isimmutable(X) || throw(FixedError)
+        X isa Number && !(X isa Real) && !(X isa Fixed) && isimmutable(X) || throw(FixedError)
         new{X}()
     end
 end
 
 FixedNumber(x::Number) = FixedNumber{x}()
-Base.convert(x::Type{FixedNumber{X}}, y::Number) where {X} = X == y ? FixedNumber{X}() : InexactError(:convert, FixedNumber{X}(), y)
-Base.convert(::Type{T}, ::FixedNumber{X}) where {T<:Number,X} = convert(T, X)
 
 """
-`Fixed` is short-hand for the `Union` of all `FixedInteger`s, `FixedReal`s and
-`FixedNumber`s.
-
-`Fixed(x)` constructs one of those types (depending on the value of x).
+`Fixed{X}` is short-hand for the `Union` of `FixedInteger{X}`, `FixedReal{X}`
+and `FixedNumber{X}`.
 """
-const Fixed = Union{FixedInteger, FixedReal, FixedNumber}
+const Fixed{X} = Union{FixedInteger{X}, FixedReal{X}, FixedNumber{X}}
 
-function Fixed(x::Number)
+"""
+`Fixed(X)` is shorthand for `FixedInteger{X}()`, `FixedReal{X}()` or `FixedNumber{X}()`,
+depending on the type of `X`.
+"""
+Fixed(X::Integer) = FixedInteger{X}()
+Fixed(X::Real) = FixedReal{X}()
+Fixed(X::Number) = FixedNumber{X}()
+Fixed(X::Fixed) = X
+
+# Note: `fix` and `unfix` are unexported and may soon be removed.
+"""
+fix(x) creates an appropriate type of `Fixed`, in a way that is not
+type-stable.
+"""
+function fix(x::Number)
     imag(x) != 0 && return FixedNumber(x)
     x = real(x)
     round(x) != x && return FixedReal(x)
     return FixedInteger(Integer(x))
 end
+fix(x::Fixed) = x
 
-Base.promote_rule(::Type{<:FixedInteger}, ::Type{<:FixedInteger}) = Int
-Base.promote_rule(::Type{<:FixedReal}, ::Type{<:Union{FixedReal,FixedInteger}}) = Float64
-Base.promote_rule(::Type{<:FixedNumber}, ::Type{<:Fixed}) = Complex{Float64}
+# Typically it is better to `convert` to a specified type, but we
+# provide an unexported `unfix` for when it's needed.
+"""
+unfix(x) turns `Fixed{X}` into `X`
+"""
+unfix(::Fixed{X}) where X = X
+unfix(x) = x
 
-Base.promote_rule(::Type{<:Fixed}, ::Type{T}) where {T<:Number} = T
+Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{Y}}) where {X,Y} =
+    promote_type(typeof(X),typeof(Y))
+
+Base.promote_rule(::Type{<:Fixed{X}}, ::Type{T}) where {X,T<:Number} =
+    promote_type(typeof(X), T)
+
+Base.convert(T::Type{<:Fixed{X}}, y::Number) where {X} = X == y ? T() : InexactError(:convert, T, y)
+
+Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
+
+# TODO: Constructors to avoid Fixed{Fixed}
 
 # Some of the more common constructors that do not default to `convert`
 for T in (:Bool, :Int32, :UInt32, :Int64, :UInt64, :Int128)
@@ -79,7 +99,7 @@ for T in (:Float32, :Float64)
     @eval Base.$T(::Union{FixedInteger{X}, FixedReal{X}}) where X = $T(X)
 end
 for T in (:ComplexF32, :ComplexF64)
-    @eval Base.$T(::Union{FixedInteger{X}, FixedReal{X}, FixedNumber{X}}) where X = $T(X)
+    @eval Base.$T(::Fixed{X}) where X = $T(X)
 end
 # big(x) still defaults to convert.
 
