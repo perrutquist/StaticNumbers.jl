@@ -2,6 +2,8 @@ using FixedNumbers
 using Test
 
 @test Fixed(1) === FixedInteger{1}()
+@test Fixed(1) == 1
+@test sin(Fixed(1)) == sin(1)
 @test Fixed(1+im) === FixedNumber{1+im}()
 
 @test Fixed(1.5) === FixedReal{1.5}()
@@ -18,3 +20,13 @@ using Test
 
 @test Fixed(Fixed(1)) == Fixed(1)
 @test_throws ErrorException FixedInteger{FixedInteger{1}()}()
+
+ex = FixedNumbers.genfixedmethod1(sin, 0, Set((3, 0, 2)))
+#println(ex)
+eval(ex)
+@test sin(FixedInteger{0}()) === FixedInteger{0}()
+
+exs = FixedNumbers.genfixedmethods1((sinpi,cospi), (0,1), ())
+#println.(exs)
+eval.(exs)
+@test sinpi(FixedInteger{1}()) === FixedInteger{0}()

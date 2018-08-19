@@ -71,15 +71,42 @@ Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
 # TODO: Constructors to avoid Fixed{Fixed}
 
 # Some of the more common constructors that do not default to `convert`
-for T in (:Bool, :Int32, :UInt32, :Int64, :UInt64, :Int128)
+for T in (:Bool, :Int32, :UInt32, :Int64, :UInt64, :Int128, :Integer)
     @eval Base.$T(::FixedInteger{X}) where X = $T(X)
 end
-for T in (:Float32, :Float64)
+for T in (:Float32, :Float64, :AbstractFloat)
     @eval Base.$T(::Union{FixedInteger{X}, FixedReal{X}}) where X = $T(X)
 end
-for T in (:ComplexF32, :ComplexF64)
+for T in (:ComplexF32, :ComplexF64, :Complex)
     @eval Base.$T(::Fixed{X}) where X = $T(X)
 end
 # big(x) still defaults to convert.
+
+function genfixedmethod1(fun, arg1, targets)
+    r = @eval $fun($arg1)
+    ts = filter(isequal(r), targets)
+    if length(ts) == 1
+        return quote
+             $(Base.parentmodule(fun)).$(Base.nameof(fun))(::$(typeof(Fixed(arg1)))) =
+                 $(Fixed(first(ts)))
+             end
+    end
+    return nothing
+end
+
+function genfixedmethods1(funs, args, targets)
+    m = Vector{Expr}()
+    tu = union(args, targets)
+    for f in funs
+        for a in args
+            e = genfixedmethod1(f, a, tu)
+            if e isa Expr
+                push!(m, e)
+            end
+        end
+    end
+    return m
+end
+
 
 end # module
