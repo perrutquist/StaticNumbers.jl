@@ -58,27 +58,6 @@ Fixed(X::Real) = FixedReal{X}()
 Fixed(X::Number) = FixedNumber{X}()
 Fixed(X::Fixed) = X
 
-# Note: `fix` and `unfix` are unexported and may soon be removed.
-"""
-fix(x) creates an appropriate type of `Fixed`, in a way that is not
-type-stable.
-"""
-function fix(x::Number)
-    imag(x) != 0 && return FixedNumber(x)
-    x = real(x)
-    round(x) != x && return FixedReal(x)
-    return FixedInteger(Integer(x))
-end
-fix(x::Fixed) = x
-
-# Typically it is better to `convert` to a specified type, but we
-# provide an unexported `unfix` for when it's needed.
-"""
-unfix(x) turns `Fixed{X}` into `X`
-"""
-unfix(::Fixed{X}) where X = X
-unfix(x) = x
-
 Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{Y}}) where {X,Y} =
     promote_type(typeof(X),typeof(Y))
 
