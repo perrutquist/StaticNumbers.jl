@@ -86,10 +86,16 @@ function genfixedmethod1(fun, arg1, targets)
     r = @eval $fun($arg1)
     ts = filter(isequal(r), targets)
     if length(ts) == 1
-        return quote
-             $(Base.parentmodule(fun)).$(Base.nameof(fun))(::$(typeof(Fixed(arg1)))) =
-                 $(Fixed(first(ts)))
-             end
+        return :( $fun(::$(typeof(Fixed(arg1)))) = $(Fixed(first(ts))) )
+    end
+    return nothing
+end
+
+function genfixedmethod2(fun, arg1, arg2, targets)
+    r = @eval $fun($arg1, $arg2)
+    ts = filter(isequal(r), targets)
+    if length(ts) == 1
+        return :( $fun(::$(typeof(Fixed(arg1))),::$(typeof(Fixed(arg2)))) = $(Fixed(first(ts))) )
     end
     return nothing
 end
@@ -108,5 +114,34 @@ function genfixedmethods1(funs, args, targets)
     return m
 end
 
+function genfixedmethods2(funs, args, targets)
+    m = Vector{Expr}()
+    tu = union(args, targets)
+    for f in funs
+        for a1 in args
+            for a2 in args
+                e = genfixedmethod2(f, a1, a2, tu)
+                if e isa Expr
+                    push!(m, e)
+                end
+            end
+        end
+    end
+    return m
+end
+
+macro fixedmethods1(funs, args, targets=:(()))
+    funs isa Expr && funs.head == :tuple || error("Expected a Tuple of functions")
+    args isa Expr && args.head == :tuple || error("Expected a Tuple of numbers")
+    targets isa Expr && targets.head == :tuple || error("Expected a Tuple of target numbers")
+    return esc(Expr(:block, genfixedmethods1(funs.args, args.args, targets.args)))
+end
+
+macro fixedmethods2(funs, args, targets=:(()))
+    funs isa Expr && funs.head == :tuple || error("Expected a Tuple of functions")
+    args isa Expr && args.head == :tuple || error("Expected a Tuple of numbers")
+    targets isa Expr && targets.head == :tuple || error("Expected a Tuple of target numbers")
+    return esc(Expr(:block, genfixedmethods2(funs.args, args.args, targets.args)))
+end
 
 end # module

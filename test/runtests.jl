@@ -21,12 +21,10 @@ using Test
 @test Fixed(Fixed(1)) == Fixed(1)
 @test_throws ErrorException FixedInteger{FixedInteger{1}()}()
 
-ex = FixedNumbers.genfixedmethod1(sin, 0, Set((3, 0, 2)))
-#println(ex)
-eval(ex)
-@test sin(FixedInteger{0}()) === FixedInteger{0}()
+#println(macroexpand(FixedNumbers, :(@fixedmethods1 (Base.Math.sinpi, Base.Math.cospi) (0, 1))))
+FixedNumbers.@fixedmethods1 (Base.Math.sinpi, Base.Math.cospi) (0, 1)
+@eval :( @test sinpi(FixedInteger{1}()) === FixedInteger{0}() )
 
-exs = FixedNumbers.genfixedmethods1((sinpi,cospi), (0,1), ())
-#println.(exs)
-eval.(exs)
-@test sinpi(FixedInteger{1}()) === FixedInteger{0}()
+#println(macroexpand(FixedNumbers, :(@fixedmethods2 (+, -) (0, 1))))
+FixedNumbers.@fixedmethods2 (+, -) (0, 1)
+@eval :( @test FixedInteger{1}() - FixedInteger{1}() === FixedInteger{0}() )
