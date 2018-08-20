@@ -82,6 +82,13 @@ for T in (:ComplexF32, :ComplexF64, :Complex)
 end
 # big(x) still defaults to convert.
 
+# Single-argument functions that do not already work.
+for fun in (:-, :zero, :one, :oneunit)
+    @eval Base.$fun(::Fixed{X}) where X = $fun(X)
+end
+
+# Functions
+
 """
 Create an expression a method for `Fixed` input to `fun` if the result
 is among the `targets`

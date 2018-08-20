@@ -23,7 +23,13 @@ using Test
 
 @test FixedInteger{0}() < 1
 @test Fixed(1) isa Integer
-@test -Fixed(1) == 1
+@test +Fixed(1) === Fixed(1)
+@test -Fixed(1) == -1
+@test ~Fixed(1) == -2
+@test isqrt(Fixed(1)) == 1
+@test zero(Fixed(1)) == 0
+@test one(Fixed(2)) == 1
+@test oneunit(Fixed(2)) == 1
 
 #println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -) )))
 @fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -)
