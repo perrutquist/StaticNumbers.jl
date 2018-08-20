@@ -21,7 +21,11 @@ using Test
 @test Fixed(Fixed(1)) == Fixed(1)
 @test_throws ErrorException FixedInteger{FixedInteger{1}()}()
 
-println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -) )))
+@test FixedInteger{0}() < 1
+@test Fixed(1) isa Integer
+@test -Fixed(1) == 1
+
+#println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -) )))
 @fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -)
 @eval :( @test sinpi(FixedInteger{1}()) === FixedInteger{0}() )
 @eval :( @test FixedInteger{1}() - FixedInteger{1}() === FixedInteger{0}() )
