@@ -1,6 +1,6 @@
 module FixedNumbers
 
-export Fixed, FixedInteger, FixedReal, FixedNumber
+export Fixed, FixedInteger, FixedReal, FixedNumber, @fixednumbers
 
 const FixedError = ErrorException("Illegal type parameter for Fixed.")
 
@@ -130,18 +130,14 @@ function genfixedmethods2(funs, args, targets)
     return m
 end
 
-macro fixedmethods1(funs, args, targets=:(()))
-    funs isa Expr && funs.head == :tuple || error("Expected a Tuple of functions")
-    args isa Expr && args.head == :tuple || error("Expected a Tuple of numbers")
-    targets isa Expr && targets.head == :tuple || error("Expected a Tuple of target numbers")
-    return esc(Expr(:block, genfixedmethods1(funs.args, args.args, targets.args)))
-end
-
-macro fixedmethods2(funs, args, targets=:(()))
-    funs isa Expr && funs.head == :tuple || error("Expected a Tuple of functions")
-    args isa Expr && args.head == :tuple || error("Expected a Tuple of numbers")
-    targets isa Expr && targets.head == :tuple || error("Expected a Tuple of target numbers")
-    return esc(Expr(:block, genfixedmethods2(funs.args, args.args, targets.args)))
+macro fixednumbers(args::Expr, funs1::Expr, funs2::Expr, targets::Expr=:(()))
+    args.head == :tuple || error("Expected a Tuple of numbers")
+    funs1.head == :tuple || error("Expected a Tuple of 1-arg functions")
+    funs2.head == :tuple || error("Expected a Tuple of 2-arg functions")
+    targets.head == :tuple || error("Expected a Tuple of target numbers")
+    return esc(Expr(:block,vcat(
+       genfixedmethods1(funs1.args, args.args, targets.args),
+       genfixedmethods2(funs2.args, args.args, targets.args))))
 end
 
 end # module
