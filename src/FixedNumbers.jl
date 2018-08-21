@@ -49,6 +49,8 @@ and `FixedNumber{X}`.
 """
 const Fixed{X} = Union{FixedInteger{X}, FixedReal{X}, FixedNumber{X}}
 
+Fixed{X}() where X = Fixed(X)
+
 """
 `Fixed(X)` is shorthand for `FixedInteger{X}()`, `FixedReal{X}()` or `FixedNumber{X}()`,
 depending on the type of `X`.
@@ -57,6 +59,15 @@ Fixed(X::Integer) = FixedInteger{X}()
 Fixed(X::Real) = FixedReal{X}()
 Fixed(X::Number) = FixedNumber{X}()
 Fixed(X::Fixed) = X
+
+Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{X}}) where {X} =
+    typeof(X)
+# We need to override promote and promote_typeof because they don't even call
+# promote_rule for all-same types.
+for T in (FixedInteger, FixedReal, FixedNumber)
+    @eval Base.promote(::$T{X}, ys::$T{X}...) where {X} = ntuple(i->X, 1+length(ys))
+    @eval Base.promote_typeof(::$T{X}, ::$T{X}...) where {X} = typeof(X)
+end
 
 Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{Y}}) where {X,Y} =
     promote_type(typeof(X),typeof(Y))
@@ -85,6 +96,15 @@ end
 # Single-argument functions that do not already work.
 for fun in (:-, :zero, :one, :oneunit)
     @eval Base.$fun(::Fixed{X}) where X = $fun(X)
+end
+
+# For brevity, all `Fixed` numbers are displayed as `Fixed(X)`, rather than, for
+# example, `FixedInteger{X}()`. It is possible to discern between the different
+# types of `Fixed` by looking at `X`.
+function Base.show(io::IO, x::Fixed{X}) where X
+    print(io, "Fixed(")
+    show(io, X)
+    print(io, ")")
 end
 
 include("macros.jl")

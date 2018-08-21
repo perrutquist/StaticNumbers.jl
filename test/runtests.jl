@@ -6,7 +6,11 @@ using Test
 @test sin(Fixed(1)) == sin(1)
 @test Fixed(1+im) === FixedNumber{1+im}()
 
+@test Fixed(1) + Fixed(1) == 2
+
 @test Fixed(1.5) === FixedReal{1.5}()
+
+@test Fixed{1}() === Fixed(1)
 
 @test Float64(Fixed(1.5)) === 1.5
 
@@ -17,6 +21,7 @@ using Test
 
 @test 2+Fixed(2) == 4
 @test 1+Fixed(1//2) === 3//2
+@test Fixed(1//2)+1 === 3//2
 
 @test Fixed(Fixed(1)) == Fixed(1)
 @test_throws ErrorException FixedInteger{FixedInteger{1}()}()
@@ -30,6 +35,10 @@ using Test
 @test zero(Fixed(1)) == 0
 @test one(Fixed(2)) == 1
 @test oneunit(Fixed(2)) == 1
+
+@test sprint(show, Fixed(1)) == "Fixed(1)"
+@test sprint(show, Fixed(1//2)) == "Fixed(1//2)"
+@test sprint(show, Fixed(0.5)) == "Fixed(0.5)"
 
 #println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -) )))
 @fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -)
