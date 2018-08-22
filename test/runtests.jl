@@ -40,7 +40,7 @@ using Test
 @test sprint(show, Fixed(1//2)) == "Fixed(1//2)"
 @test sprint(show, Fixed(0.5)) == "Fixed(0.5)"
 
-#println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -) )))
+#println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-) )))
 @fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-)
 @test sinpi(FixedInteger{1}()) === FixedInteger{0}()
 @test FixedInteger{1}() - FixedInteger{1}() === FixedInteger{0}()

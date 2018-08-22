@@ -101,6 +101,8 @@ end
 # For brevity, all `Fixed` numbers are displayed as `Fixed(X)`, rather than, for
 # example, `FixedInteger{X}()`. It is possible to discern between the different
 # types of `Fixed` by looking at `X`.
+# To get the default behaviour back, run:
+#   methods(Base.show, (IO, Fixed{X} where X)) |> first |> Base.delete_method
 function Base.show(io::IO, x::Fixed{X}) where X
     print(io, "Fixed(")
     show(io, X)
