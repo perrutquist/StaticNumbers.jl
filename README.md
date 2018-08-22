@@ -26,7 +26,7 @@ for which certain operations preserve the `Fixed`ness when possible.
 
 Under the surface, there are three `Fixed` datatypes: `FixedInteger`,
 `FixedReal`, and `FixedNumber`, subtypes of `Integer`, `Real` and `Number`
-respectively. The `Union` type `Fixed{X}` can be used to refer to them all.
+respectively. The `Union` type `Fixed` can be used to refer to them all.
 For brevity, all three types are displayed as `Fixed(X)`, and it is also
 recommended to create them using this syntax.
 

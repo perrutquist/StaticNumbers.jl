@@ -1,6 +1,6 @@
 module FixedNumbers
 
-export Fixed, FixedInteger, FixedReal, FixedNumber, @fixednumbers
+export Fixed, FixedInteger, FixedReal, FixedNumber, @fixednumbers, fix
 
 const FixedError = ErrorException("Illegal type parameter for Fixed.")
 
@@ -108,6 +108,17 @@ function Base.show(io::IO, x::Fixed{X}) where X
     show(io, X)
     print(io, ")")
 end
+
+"""
+fix(x, y1, y2, ...)
+Test if a number `x` is equal to any of the `Fixed` numbers `y1`, `y2`, ...,
+and in that case return the fixed number.
+Otherwise, `x` is returned unchanged.
+"""
+@inline fix(x::Number) = x
+@inline fix(x::Number, y::Fixed, ys::Fixed...) = x == y ? y : fix(x, ys...)
+@inline fix(x::Fixed, ys::Fixed...) = x # shortcut
+@inline fix(x::Number, ys::Number...) = fix(x, map(Fixed, ys)...)
 
 include("macros.jl")
 

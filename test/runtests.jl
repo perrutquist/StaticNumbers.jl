@@ -40,6 +40,18 @@ using Test
 @test sprint(show, Fixed(1//2)) == "Fixed(1//2)"
 @test sprint(show, Fixed(0.5)) == "Fixed(0.5)"
 
+@test fix(0, Fixed(1)) === 0
+@test fix(1, Fixed(1)) === Fixed(1)
+@test fix(0, Fixed(0), Fixed(1)) === Fixed(0)
+@test fix(1, Fixed(0), Fixed(1)) === Fixed(1)
+@test fix(2, Fixed(0), Fixed(1)) === 2
+
+@test fix(0, 1) === 0
+@test fix(1, 1) === Fixed(1)
+@test fix(0, 0, 1) === Fixed(0)
+@test fix(1, 0, 1) === Fixed(1)
+@test fix(2, 0, 1) === 2
+
 #println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-) )))
 @fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-)
 @test sinpi(FixedInteger{1}()) === FixedInteger{0}()
