@@ -111,5 +111,5 @@ macro fixednumbers(args::Expr, funs1::Expr, funs2::Expr, targets::Expr=:(()))
     return esc(Expr(:block,vcat(
        genfixedmethods1(funs1.args, args.args, targets.args),
        genfixedmethods2(funs2.args, args.args, targets.args)
-       )))
+       )...))
 end

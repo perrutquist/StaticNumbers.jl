@@ -41,6 +41,6 @@ using Test
 @test sprint(show, Fixed(0.5)) == "Fixed(0.5)"
 
 #println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -) )))
-@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (+, -)
-@eval :( @test sinpi(FixedInteger{1}()) === FixedInteger{0}() )
-@eval :( @test FixedInteger{1}() - FixedInteger{1}() === FixedInteger{0}() )
+@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-)
+@test sinpi(FixedInteger{1}()) === FixedInteger{0}()
+@test FixedInteger{1}() - FixedInteger{1}() === FixedInteger{0}()
