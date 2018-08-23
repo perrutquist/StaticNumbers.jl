@@ -123,6 +123,14 @@ Base.:mod(::Fixed{X}, ::Fixed{X}) where {X} = zero(X)
 # Three-argument function that gives no_op_err
 fma(x::Fixed{X}, y::Fixed{X}, z::Fixed{X}) where {X} = fma(X,X,X)
 
+# Fixed powers using Base.literal_pow.
+# This avoids DomainError in some cases?
+for T in (Int32, Int64, Float32, Float64, ComplexF32, ComplexF64)
+    Base.:^(x::T, ::FixedInteger{p}) where {p} = Base.literal_pow(^, x, Val(p))
+end
+Base.:^(x::Fixed{X}, ::FixedInteger{p}) where {X,p} = Base.literal_pow(^, X, Val(p))
+Base.:^(x::Fixed{X}, ::FixedInteger{X}) where {X} = Base.literal_pow(^, X, Val(X)) #disambig
+
 # For brevity, all `Fixed` numbers are displayed as `Fixed(X)`, rather than, for
 # example, `FixedInteger{X}()`. It is possible to discern between the different
 # types of `Fixed` by looking at `X`.
