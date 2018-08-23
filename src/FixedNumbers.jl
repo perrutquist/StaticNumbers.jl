@@ -72,6 +72,7 @@ Base.promote_rule(::Type{<:AbstractIrrational}, ::Type{<:Fixed{X}}) where {X} =
 # promote_rule for all-same types.
 for T in (FixedInteger, FixedReal, FixedNumber)
     @eval Base.promote(::$T{X}, ys::$T{X}...) where {X} = ntuple(i->X, 1+length(ys))
+    @eval Base.promote_type(::Type{$T{X}}, ::Type{$T{X}}) where {X} = typeof(X)
     @eval Base.promote_typeof(::$T{X}, ::$T{X}...) where {X} = typeof(X)
 end
 

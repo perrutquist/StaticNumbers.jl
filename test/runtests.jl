@@ -8,6 +8,9 @@ using Test
 
 @test Fixed(1) + Fixed(1) == 2
 
+@test promote_type(FixedInteger{1}, FixedInteger{1}) == Int
+@test promote_type(FixedInteger{1}, FixedInteger{2}) == Int
+
 @test zero(Fixed(1)) === 0
 @test zero(Fixed(1.0)) === 0.0
 
