@@ -8,6 +8,17 @@ using Test
 
 @test Fixed(1) + Fixed(1) == 2
 
+for x in (2, 3, 1.5, 2.0, 3.1, 3//2, 3+im)
+    for y in (2, 3, 1.5, 2.0, 3.1, 3//2, 3+im)
+        @test Fixed(x) + y === x + y
+        @test x + Fixed(y) === x + y
+        @test Fixed(x) + Fixed(y) === x + y
+        @test Fixed(x) - y === x - y
+        @test x - Fixed(y) === x - y
+        @test Fixed(x) - Fixed(y) === x - y || (x+y==0 && Fixed(x)-Fixed(y)===Fixed(0))
+    end
+end
+
 @test Fixed(1.5) === FixedReal{1.5}()
 
 @test Fixed{1}() === Fixed(1)
@@ -58,5 +69,6 @@ using Test
 @test FixedInteger{1}() - FixedInteger{1}() === FixedInteger{0}()
 
 # Test that sqrt(-1) doesn't cause problems with @fixednumbers
-@fixednumbers (-1, 0, 1) (Base.sqrt,) ()
+@fixednumbers (-1, 0, 1) (Base.sqrt,) (Base.rem,)
 @test sqrt(Fixed(1)) === Fixed(1)
+@test rem(Fixed(1), Fixed(1)) === Fixed(0)

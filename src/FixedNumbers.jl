@@ -100,6 +100,23 @@ for fun in (:-, :zero, :one, :oneunit)
     @eval Base.$fun(::Fixed{X}) where X = $fun(X)
 end
 
+# Two-argument functions that have methods in promotion.jl that give no_op_err:
+for f in (:+, :*, :/, :^)
+    @eval Base.$f(::Fixed{X}, ::Fixed{X}) where {X} = $f(X,X)
+end
+# ...where simplifications are possible:
+Base.:-(::Fixed{X}, ::Fixed{X}) where {X} = zero(X)
+Base.:&(::Fixed{X}, ::Fixed{X}) where {X} = X
+Base.:|(::Fixed{X}, ::Fixed{X}) where {X} = X
+Base.:xor(::Fixed{X}, ::Fixed{X}) where {X} = zero(X)
+Base.:<(::Fixed{X}, ::Fixed{X}) where {X} = false
+Base.:<=(::Fixed{X}, ::Fixed{X}) where {X} = true
+Base.:rem(::Fixed{X}, ::Fixed{X}) where {X} = zero(X)
+Base.:mod(::Fixed{X}, ::Fixed{X}) where {X} = zero(X)
+
+# Three-argument function that gives no_op_err
+fma(x::Fixed{X}, y::Fixed{X}, z::Fixed{X}) where {X} = fma(X,X,X)
+
 # For brevity, all `Fixed` numbers are displayed as `Fixed(X)`, rather than, for
 # example, `FixedInteger{X}()`. It is possible to discern between the different
 # types of `Fixed` by looking at `X`.
