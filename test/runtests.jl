@@ -8,8 +8,8 @@ using Test
 
 @test Fixed(1) + Fixed(1) == 2
 
-for x in (2, 3, 1.5, 2.0, 3.1, 3//2, 3+im)
-    for y in (2, 3, 1.5, 2.0, 3.1, 3//2, 3+im)
+for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, 3//2, 3+im)
+    for y in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, 3//2, 3+im)
         @test Fixed(x) + y === x + y
         @test x + Fixed(y) === x + y
         @test Fixed(x) + Fixed(y) === x + y
