@@ -81,7 +81,10 @@ Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{Y}}) where {X,Y} =
 Base.promote_rule(::Type{<:Fixed{X}}, ::Type{T}) where {X,T<:Number} =
     promote_type(typeof(X), T)
 
-Base.convert(T::Type{<:Fixed{X}}, y::Number) where {X} = X == y ? T() : InexactError(:convert, T, y)
+function Base.convert(T::Type{<:Fixed{X}}, y::Number) where {X}
+    X == y || throw(InexactError(:convert, T, y))
+    return T()
+end
 
 Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
 
@@ -111,6 +114,7 @@ end
 # For complex-valued inputs, there's no auto-convert to floating-point.
 # We only support a limited subset of functions, which the user can extend
 # as needed.
+# TODO: Should have a macro for making functions accept Fixed input.
 for fun in (:abs, :cos, :sin, :exp, :log, :isinf, :isfinite, :isnan)
     @eval Base.$fun(::FixedNumber{X}) where {X} = Base.$fun(X)
 end

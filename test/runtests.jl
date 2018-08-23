@@ -57,6 +57,7 @@ end
 
 @test Fixed(Fixed(1)) == Fixed(1)
 @test_throws ErrorException FixedInteger{FixedInteger{1}()}()
+@test_throws InexactError convert(FixedInteger{1}, 2)
 
 @test FixedInteger{0}() < 1
 @test Fixed(1) isa Integer
