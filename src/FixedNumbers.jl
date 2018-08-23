@@ -58,12 +58,16 @@ Fixed{X}() where X = Fixed(X)
 depending on the type of `X`.
 """
 Base.@pure Fixed(X::Fixed) = X
+Base.@pure Fixed(X::Irrational) = X # These are already defined by their type.
 Base.@pure Fixed(X::Integer) = FixedInteger{X}()
 Base.@pure Fixed(X::Real) = FixedReal{X}()
 Base.@pure Fixed(X::Number) = FixedNumber{X}()
 
 Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{X}}) where {X} =
     typeof(X)
+Base.promote_rule(::Type{<:AbstractIrrational}, ::Type{<:Fixed{X}}) where {X} =
+    promote_type(Float64, typeof(X))
+
 # We need to override promote and promote_typeof because they don't even call
 # promote_rule for all-same types.
 for T in (FixedInteger, FixedReal, FixedNumber)
@@ -98,8 +102,17 @@ Complex{T}(::Fixed{X}) where {T,X} = Rational{T}(X)
 # big(x) still defaults to convert.
 
 # Single-argument functions that do not already work.
-for fun in (:-, :zero, :one, :oneunit, :trailing_zeros, :widen)
-    @eval Base.$fun(::Fixed{X}) where X = $fun(X)
+for fun in (:-, :zero, :one, :oneunit, :trailing_zeros, :widen, :decompose)
+    @eval Base.$fun(::Fixed{X}) where X = Base.$fun(X)
+end
+for fun in (:trunc, :floor, :ceil, :round)
+    @eval Base.$fun(::Union{FixedReal{X}, FixedNumber{X}}) where {X} = Base.$fun(X)
+end
+# For complex-valued inputs, there's no auto-convert to floating-point.
+# We only support a limited subset of functions, which the user can extend
+# as needed.
+for fun in (:abs, :cos, :sin, :exp, :log, :isinf, :isfinite, :isnan)
+    @eval Base.$fun(::FixedNumber{X}) where {X} = Base.$fun(X)
 end
 
 # Other functions that do not already work
@@ -107,14 +120,13 @@ Base.:(<<)(::FixedInteger{X}, y::UInt64) where {X} = X << y
 Base.:(>>)(::FixedInteger{X}, y::UInt64) where {X} = X >> y
 
 # Two-argument functions that have methods in promotion.jl that give no_op_err:
-for f in (:+, :*, :/, :^)
+for f in (:+, :-, :*, :/, :^)
     @eval Base.$f(::Fixed{X}, ::Fixed{X}) where {X} = $f(X,X)
 end
 # ...where simplifications are possible:
-Base.:-(::Fixed{X}, ::Fixed{X}) where {X} = zero(X)
-Base.:&(::Fixed{X}, ::Fixed{X}) where {X} = X
-Base.:|(::Fixed{X}, ::Fixed{X}) where {X} = X
-Base.:xor(::Fixed{X}, ::Fixed{X}) where {X} = zero(X)
+Base.:&(::FixedInteger{X}, ::FixedInteger{X}) where {X} = X
+Base.:|(::FixedInteger{X}, ::FixedInteger{X}) where {X} = X
+Base.:xor(::FixedInteger{X}, ::FixedInteger{X}) where {X} = zero(X)
 Base.:<(::Fixed{X}, ::Fixed{X}) where {X} = false
 Base.:<=(::Fixed{X}, ::Fixed{X}) where {X} = true
 Base.:rem(::Fixed{X}, ::Fixed{X}) where {X} = zero(X)
@@ -145,7 +157,13 @@ end
 """
 fix(x, y1, y2, ...)
 Test if a number `x` is equal to any of the `Fixed` numbers `y1`, `y2`, ...,
-and in that case return the fixed number. Otherwise, `x` is returned unchanged.
+and in that case return the fixed number. Otherwise, or if
+`x` is already a `Fixed` number, it is also returned unchanged.
+
+This function can be used to call specialized methods for certain input values.
+For example, `f(x, fix(y, Fixed(0)))` will call `f(x, y)` if `y` is nonzero, but
+`f(x, Fixed(0)) if y is zero. This is useful if it enables optimizations that
+outweigh the cost of branching.
 """
 @inline fix(x::Number) = x
 @inline fix(x::Number, y::Fixed, ys::Fixed...) = x == y ? y : fix(x, ys...)

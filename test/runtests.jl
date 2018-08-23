@@ -8,8 +8,19 @@ using Test
 
 @test Fixed(1) + Fixed(1) == 2
 
-for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, 3//2, 3.0+im)
-    for y in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, 3//2, 3.0+im)
+for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
+    for f in (:round, :ceil, :floor, :sign, :cos, :sin, :log, :exp, :isfinite, :isnan)
+        r = try
+            @eval $f($x)
+        catch
+            nothing
+        end
+        if r != nothing
+            #println(f, (x,), " == ", r)
+            @test @eval $f(Fixed($x)) == $r
+        end
+    end
+    for y in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
         @test Fixed(x) + y === x + y
         @test x + Fixed(y) === x + y
         @test Fixed(x) + Fixed(y) === x + y
@@ -20,7 +31,7 @@ for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, 3//2, 3.0+im)
                 nothing
             end
             if r != nothing
-                println(f, (x,y), " ≈ ", r)
+                #println(f, (x,y), " ≈ ", r)
                 @test @eval $f(Fixed($x), $y) ≈ $r
                 @test @eval $f($x, Fixed($y)) ≈ $r
                 @test @eval $f(Fixed($x), Fixed($y)) ≈ $r
