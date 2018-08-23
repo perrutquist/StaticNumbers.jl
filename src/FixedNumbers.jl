@@ -49,16 +49,18 @@ and `FixedNumber{X}`.
 """
 const Fixed{X} = Union{FixedInteger{X}, FixedReal{X}, FixedNumber{X}}
 
+# We'll allow this constructor, but not recommend it.
 Fixed{X}() where X = Fixed(X)
 
+# This is the recommended constructor.
 """
 `Fixed(X)` is shorthand for `FixedInteger{X}()`, `FixedReal{X}()` or `FixedNumber{X}()`,
 depending on the type of `X`.
 """
-Fixed(X::Integer) = FixedInteger{X}()
-Fixed(X::Real) = FixedReal{X}()
-Fixed(X::Number) = FixedNumber{X}()
-Fixed(X::Fixed) = X
+Base.@pure Fixed(X::Fixed) = X
+Base.@pure Fixed(X::Integer) = FixedInteger{X}()
+Base.@pure Fixed(X::Real) = FixedReal{X}()
+Base.@pure Fixed(X::Number) = FixedNumber{X}()
 
 Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{X}}) where {X} =
     typeof(X)
@@ -112,13 +114,13 @@ end
 """
 fix(x, y1, y2, ...)
 Test if a number `x` is equal to any of the `Fixed` numbers `y1`, `y2`, ...,
-and in that case return the fixed number.
-Otherwise, `x` is returned unchanged.
+and in that case return the fixed number. Otherwise, `x` is returned unchanged.
 """
 @inline fix(x::Number) = x
 @inline fix(x::Number, y::Fixed, ys::Fixed...) = x == y ? y : fix(x, ys...)
 @inline fix(x::Fixed, ys::Fixed...) = x # shortcut
 @inline fix(x::Number, ys::Number...) = fix(x, map(Fixed, ys)...)
+# TODO: Use a tree search for long, sorted lists.
 
 include("macros.jl")
 
