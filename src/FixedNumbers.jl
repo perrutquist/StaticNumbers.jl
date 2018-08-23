@@ -111,6 +111,10 @@ end
 for fun in (:trunc, :floor, :ceil, :round)
     @eval Base.$fun(::Union{FixedReal{X}, FixedNumber{X}}) where {X} = Base.$fun(X)
 end
+for fun in (:zero, :one, :oneunit)
+    @eval Base.$fun(::Type{<:Fixed{X}}) where {X} = Base.$fun(typeof(X))
+end
+
 # For complex-valued inputs, there's no auto-convert to floating-point.
 # We only support a limited subset of functions, which the user can extend
 # as needed.

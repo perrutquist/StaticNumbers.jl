@@ -8,6 +8,9 @@ using Test
 
 @test Fixed(1) + Fixed(1) == 2
 
+@test zero(Fixed(1)) === 0
+@test zero(Fixed(1.0)) === 0.0
+
 for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
     for f in (:round, :ceil, :floor, :sign, :cos, :sin, :log, :exp, :isfinite, :isnan)
         r = try
