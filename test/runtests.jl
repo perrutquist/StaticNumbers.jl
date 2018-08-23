@@ -56,3 +56,7 @@ using Test
 @fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-)
 @test sinpi(FixedInteger{1}()) === FixedInteger{0}()
 @test FixedInteger{1}() - FixedInteger{1}() === FixedInteger{0}()
+
+# Test that sqrt(-1) doesn't cause problems with @fixednumbers
+@fixednumbers (-1, 0, 1) (Base.sqrt,) ()
+@test sqrt(Fixed(1)) === Fixed(1)
