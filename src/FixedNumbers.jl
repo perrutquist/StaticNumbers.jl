@@ -87,18 +87,24 @@ Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
 for T in (:Bool, :Int32, :UInt32, :Int64, :UInt64, :Int128, :Integer)
     @eval Base.$T(::FixedInteger{X}) where X = $T(X)
 end
-for T in (:Float32, :Float64, :AbstractFloat)
+for T in (:Float32, :Float64, :AbstractFloat, :Rational)
     @eval Base.$T(::Union{FixedInteger{X}, FixedReal{X}}) where X = $T(X)
 end
 for T in (:ComplexF32, :ComplexF64, :Complex)
     @eval Base.$T(::Fixed{X}) where X = $T(X)
 end
+Rational{T}(::Union{FixedInteger{X}, FixedReal{X}}) where {T,X} = Rational{T}(X)
+Complex{T}(::Fixed{X}) where {T,X} = Rational{T}(X)
 # big(x) still defaults to convert.
 
 # Single-argument functions that do not already work.
-for fun in (:-, :zero, :one, :oneunit)
+for fun in (:-, :zero, :one, :oneunit, :trailing_zeros, :widen)
     @eval Base.$fun(::Fixed{X}) where X = $fun(X)
 end
+
+# Other functions that do not already work
+Base.:(<<)(::FixedInteger{X}, y::UInt64) where {X} = X << y
+Base.:(>>)(::FixedInteger{X}, y::UInt64) where {X} = X >> y
 
 # Two-argument functions that have methods in promotion.jl that give no_op_err:
 for f in (:+, :*, :/, :^)

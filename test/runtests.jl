@@ -13,9 +13,19 @@ for x in (2, 3, 1.5, 2.0, 3.1, 3//2, 3+im)
         @test Fixed(x) + y === x + y
         @test x + Fixed(y) === x + y
         @test Fixed(x) + Fixed(y) === x + y
-        @test Fixed(x) - y === x - y
-        @test x - Fixed(y) === x - y
-        @test Fixed(x) - Fixed(y) === x - y || (x+y==0 && Fixed(x)-Fixed(y)===Fixed(0))
+        for f in (:-, :*, :/, :^, :rem, :mod, :(<<), :(>>), :(==), :(<), :(<=), :(>), :(>=))
+            r = try
+                @eval $f($x,$y)
+            catch
+                nothing
+            end
+            if r != nothing
+                #println(f, (x,y), " ≈ ", r)
+                @test @eval $f(Fixed($x), $y) ≈ $r
+                @test @eval $f($x, Fixed($y)) ≈ $r
+                @test @eval $f(Fixed($x), Fixed($y)) ≈ $r
+            end
+        end
     end
 end
 

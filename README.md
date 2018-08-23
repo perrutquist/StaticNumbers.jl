@@ -27,7 +27,8 @@ For brevity, all three types are displayed as `Fixed(X)`, and it is also
 recommended to create them using this syntax.
 
 By default, any operation on a `Fixed` will result in a non-`Fixed` type.
-For example, `Fixed(1)*Fixed(1)` gives `1` -- not `Fixed(1)`.
+For example, `Fixed(1)*Fixed(1)` gives `1`, not `Fixed(1)`. (Exceptions
+are methods that return their input argument unchanged.)
 It is possible to change this behavior by method overloading.
 The `@fixednumbers` macro can be used on a small set of `Fixed` numbers
 to make certain operations preserve the `Fixed` type when possible.
