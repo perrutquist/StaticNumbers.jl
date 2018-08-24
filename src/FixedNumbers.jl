@@ -1,6 +1,7 @@
 module FixedNumbers
 
-export Fixed, FixedInteger, FixedReal, FixedNumber, @fixednumbers, fix
+export Fixed, FixedInteger, FixedReal, FixedNumber, @fixednumbers, fix,
+       FixedRange, zeroth
 
 const FixedError = ErrorException("Illegal type parameter for Fixed.")
 
@@ -163,6 +164,9 @@ function Base.show(io::IO, x::Fixed{X}) where X
     print(io, ")")
 end
 
+# This function should maybe be renamed.
+# Possible names: fixto, fixif, maybefix
+# Also, it should have a unicode or-like operator alias.
 """
 fix(x, y1, y2, ...)
 Test if a number `x` is equal to any of the `Fixed` numbers `y1`, `y2`, ...,
@@ -177,9 +181,11 @@ outweigh the cost of branching.
 @inline fix(x::Number) = x
 @inline fix(x::Number, y::Fixed, ys::Fixed...) = x == y ? y : fix(x, ys...)
 @inline fix(x::Fixed, ys::Fixed...) = x # shortcut
-@inline fix(x::Number, ys::Number...) = fix(x, map(Fixed, ys)...)
+@inline fix(x::Number, ys::Number...) = fix(x, map(Fixed, ys)...) # This method might be removed soon.
 # TODO: Use a tree search for long, sorted lists.
 
 include("macros.jl")
+
+include("FixedRanges.jl")
 
 end # module

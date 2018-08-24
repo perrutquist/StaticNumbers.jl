@@ -100,3 +100,19 @@ end
 @fixednumbers (-1, 0, 1) (Base.sqrt,) (Base.rem,)
 @test sqrt(Fixed(1)) === Fixed(1)
 @test rem(Fixed(1), Fixed(1)) === Fixed(0)
+
+# Test FixedRanges
+
+r = FixedRange(1, 2, Fixed(3))
+
+@test r isa FixedRange
+@test r isa FixedRange{Int, Int, Int, <:Fixed}
+@test r isa FixedRange{Int, Int, Int, <:Fixed{3}}
+@test r isa FixedRange{Int, Int, Int, FixedInteger{3}}
+@test all(r .== 3:2:7)
+@test r[2] == 5
+@test all(collect(r) .== [3, 5, 7])
+@test all(2*r .== 2*(3:2:7))
+@test all(r*5 .== (3:2:7)*5)
+@test all(7+r .== 10:2:14)
+@test all(r+7 .== 10:2:14)
