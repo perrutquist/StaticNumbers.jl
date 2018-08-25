@@ -66,18 +66,19 @@ const FixedRange{T,Z,S,L} = Union{FixedOrdinalRange{T,Z,S,L}, FixedUnitRange{T,Z
 
 FixedRange(z::Z, s::S, l::L) where {Z, S, L<:Integer} =
     FixedOrdinalRange{promote_type(Z, S), Z, S, L}(z, s, l)
+FixedRange(z::Z, ::FixedInteger{1}, l::L) where {Z, L<:Integer} =
+    FixedUnitRange{promote_type(Z, Int), Z, L}(z, l)
 FixedUnitRange(z::Z, l::L) where {Z, L<:Integer} =
-    FixedUnitRange{promote_type(Z, S), Z, L}(z, l)
+    FixedUnitRange{promote_type(Z, Int), Z, L}(z, l)
 
 FixedRange(r::OrdinalRange) = FixedRange(first(r)-step(r), step(r), length(r))
-FixedRange(r::UnitRange) = FixedUnitRange(first(r)-step(r), length(r))
+FixedRange(r::AbstractUnitRange) = FixedUnitRange(first(r)-step(r), length(r))
+FixedUnitRange(r::UnitRange) = FixedUnitRange(first(r)-step(r), length(r))
 
-function FixedRange{T,Z,S,L}() where {T, Z<:Fixed, S<:Fixed, L<:FixedInteger}
+FixedRange{T,Z,S,L}() where {T, Z<:Fixed, S<:Fixed, L<:FixedInteger} =
     FixedOrdinalRange{T,Z,S,L}(Z(), S(), L())
-end
-function FixedRange{T,Z,FixedInteger{1},L}() where {T, Z<:Fixed, L<:FixedInteger}
+FixedRange{T,Z,FixedInteger{1},L}() where {T, Z<:Fixed, L<:FixedInteger} =
     FixedUnitRange{T,Z,L}(Z(), L())
-end
 
 zeroth(r::FixedRange) = r.zeroth
 zeroth(r::AbstractRange) = first(r)-step(r)

@@ -109,7 +109,7 @@ r = FixedRange(1, 2, Fixed(3))
 @test r isa FixedRange{Int, Int, Int, <:Fixed}
 @test r isa FixedRange{Int, Int, Int, <:Fixed{3}}
 @test r isa FixedRange{Int, Int, Int, FixedInteger{3}}
-@test r isa FixedOrdinalRange{Int, Int, Int, FixedInteger{3}}
+@test r isa FixedNumbers.FixedOrdinalRange{Int, Int, Int, FixedInteger{3}}
 @test all(r .== 3:2:7)
 @test r[2] == 5
 @test all(collect(r) .== [3, 5, 7])
@@ -118,9 +118,16 @@ r = FixedRange(1, 2, Fixed(3))
 @test all(7+r .== 10:2:14)
 @test all(r+7 .== 10:2:14)
 
-r = FixedRange(1, Fixed(1), Fixed(3))
-test r isa FixedRange
-@test r isa FixedRange{Int, Int, Int, <:Fixed}
-@test r isa FixedRange{Int, Int, Int, <:Fixed{3}}
-@test r isa FixedRange{Int, Int, Int, FixedInteger{3}}
-@test r isa FixedUnitRange{Int, Int, FixedInteger{3}}
+ur = FixedRange(2, Fixed(1), Fixed(3))
+@test ur isa FixedRange
+@test ur isa FixedRange{Int, Int, <:Fixed, <:Fixed}
+@test ur isa FixedRange{Int, Int, <:Fixed{1}, <:Fixed{3}}
+@test ur isa FixedRange{Int, Int, FixedInteger{1}, FixedInteger{3}}
+@test ur isa FixedNumbers.FixedUnitRange{Int, Int, FixedInteger{3}}
+@test all(ur .== 3:5)
+@test ur[2] == 4
+@test all(collect(ur) .== [3, 4, 5])
+@test all(2*ur .== 2*(3:5))
+@test all(ur*5 .== (3:5)*5)
+@test all(7+ur .== 10:12)
+@test all(ur+7 .== 10:12)
