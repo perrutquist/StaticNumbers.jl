@@ -66,6 +66,8 @@ const FixedRange{T,Z,S,L} = Union{FixedOrdinalRange{T,Z,S,L}, FixedUnitRange{T,Z
 
 FixedRange(z::Z, s::S, l::L) where {Z, S, L<:Integer} =
     FixedOrdinalRange{promote_type(Z, S), Z, S, L}(z, s, l)
+FixedOrdinalRange(z::Z, s::S, l::L) where {Z, S, L<:Integer} =
+    FixedOrdinalRange{promote_type(Z, S), Z, S, L}(z, s, l)
 FixedRange(z::Z, ::FixedInteger{1}, l::L) where {Z, L<:Integer} =
     FixedUnitRange{promote_type(Z, Int), Z, L}(z, l)
 FixedUnitRange(z::Z, l::L) where {Z, L<:Integer} =
@@ -126,7 +128,9 @@ Base.:+(a,r::FixedRange) = FixedRange(a+r.zeroth, r.step, r.length)
 Base.:+(r::FixedRange,a) = a+r
 
 Base.:*(a::Number,r::FixedRange) = FixedRange(a*r.zeroth, a*r.step, r.length)
-Base.:*(a::Number,r::FixedRange{<:Any, FixedInteger{0}}) = FixedRange(Fixed(0), a*r.step, r.length)
+#Base.:*(a::Number,r::FixedRange{<:Any, FixedInteger{0}}) = FixedRange(Fixed(0), a*r.step, r.length)
+Base.:*(a::Number,r::FixedOrdinalRange{<:Any, FixedInteger{0}}) = FixedOrdinalRange(Fixed(0), a*r.step, r.length)
+Base.:*(a::Number,r::FixedUnitRange{<:Any, FixedInteger{0}}) = FixedOrdinalRange(Fixed(0), a*r.step, r.length)
 Base.:*(r::FixedRange,a::Number) = a*r
 
 Base.eachindex(r::FixedRange{<:Any, <:Any, <:Any, <:FixedInteger}) =
