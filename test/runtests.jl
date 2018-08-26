@@ -103,7 +103,7 @@ end
 
 # Test FixedRanges
 
-r = FixedRange(1, 2, Fixed(3))
+r = FixedOrdinalRange(1, 2, Fixed(3))
 
 @test r isa FixedRange
 @test r isa FixedRange{Int, Int, Int, <:Fixed}
@@ -118,7 +118,7 @@ r = FixedRange(1, 2, Fixed(3))
 @test all(7+r .== 10:2:14)
 @test all(r+7 .== 10:2:14)
 
-ur = FixedRange(2, Fixed(1), Fixed(3))
+ur = FixedUnitRange(2, Fixed(3))
 @test ur isa FixedRange
 @test ur isa FixedRange{Int, Int, <:Fixed, <:Fixed}
 @test ur isa FixedRange{Int, Int, <:Fixed{1}, <:Fixed{3}}
@@ -131,3 +131,13 @@ ur = FixedRange(2, Fixed(1), Fixed(3))
 @test all(ur*5 .== (3:5)*5)
 @test all(7+ur .== 10:12)
 @test all(ur+7 .== 10:12)
+
+# Test types
+@test FixedRange(1:3) isa FixedUnitRange
+@test FixedRange(1:2:4) isa FixedOrdinalRange
+
+# Test that type inferrence is working
+@test Base.return_types(*, (Int, typeof(r)))[1] === typeof(r)
+@test Base.return_types(+, (Int, typeof(r)))[1] === typeof(r)
+@test Base.return_types(*, (Int, typeof(ur)))[1] === typeof(r)
+@test Base.return_types(+, (Int, typeof(ur)))[1] === typeof(ur)
