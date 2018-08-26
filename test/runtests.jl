@@ -117,6 +117,8 @@ r = FixedOrdinalRange(1, 2, Fixed(3))
 @test all(r*5 .== (3:2:7)*5)
 @test all(7+r .== 10:2:14)
 @test all(r+7 .== 10:2:14)
+@test all(-r .== -(3:2:7))
+@test -(-r) === r
 
 ur = FixedUnitRange(2, Fixed(3))
 @test ur isa FixedRange
@@ -131,6 +133,10 @@ ur = FixedUnitRange(2, Fixed(3))
 @test all(ur*5 .== (3:5)*5)
 @test all(7+ur .== 10:12)
 @test all(ur+7 .== 10:12)
+@test all(-ur .== -(3:5))
+@test -(-ur) === ur 
+
+
 
 # Test types
 @test FixedRange(1:3) isa FixedUnitRange

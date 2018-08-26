@@ -137,6 +137,10 @@ Base.:+(a,r::FixedOrdinalRange) = FixedOrdinalRange(a+r.zeroth, r.step, r.length
 Base.:+(a,r::FixedUnitRange) = FixedUnitRange(a+r.zeroth, r.length)
 Base.:+(r::FixedRange,a) = a+r
 
+Base.:-(r::FixedOrdinalRange) = FixedOrdinalRange(-r.zeroth, -r.step, r.length)
+Base.:-(r::FixedOrdinalRange{<:Any,<:Integer,FixedInteger{-1}}) = FixedUnitRange(-r.zeroth, r.length)
+Base.:-(r::FixedUnitRange) = FixedOrdinalRange(-r.zeroth, Fixed(-1), r.length)
+
 Base.:*(a::Number,r::FixedRange) = FixedOrdinalRange(a*r.zeroth, a*r.step, r.length)
 Base.:*(a::Number,r::FixedRange{<:Any, FixedInteger{0}}) = FixedOrdinalRange(Fixed(0), a*r.step, r.length)
 Base.:*(r::FixedRange,a::Number) = a*r
