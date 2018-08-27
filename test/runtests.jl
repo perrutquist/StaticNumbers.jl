@@ -160,7 +160,7 @@ ur = FixedUnitRange(2, Fixed(3))
 @test -(-ur) === ur
 @test typeof(7 .+ ur) == typeof(ur)
 @test typeof(ur .+ 7) == typeof(ur)
-@test lengtht(7 .- ur) == Fixed(3)
+@test length(7 .- ur) == Fixed(3)
 @test typeof(ur .- 7) == typeof(ur)
 @test length(7 .* ur) === Fixed(3)
 @test length(ur .* 7) === Fixed(3)
