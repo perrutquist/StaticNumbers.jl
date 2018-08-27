@@ -94,28 +94,28 @@ FixedStepRange(r::StepRange) = FixedStepRange(first(r)-step(r), step(r), length(
 FixedRange(r::AbstractUnitRange) = FixedUnitRange(r)
 FixedUnitRange(r::UnitRange) = FixedUnitRange(first(r)-step(r), length(r))
 
-zeroth(r::FixedRange) = r.zeroth
-zeroth(r::AbstractRange) = first(r)-step(r)
+@inline zeroth(r::FixedRange) = r.zeroth
+@inline zeroth(r::AbstractRange) = first(r)-step(r)
 
-Base.step(r::FixedRange) = r.step
-Base.length(r::FixedRange) = r.length
-Base.unsafe_length(r::FixedRange) = r.length
+@inline Base.step(r::FixedRange) = r.step
+@inline Base.length(r::FixedRange) = r.length
+@inline Base.unsafe_length(r::FixedRange) = r.length
 
 # `first` and `last` return elements of the array, so are of type T, never `Fixed`.
-Base.first(r::FixedRange{T}) where {T} = convert(T, r.zeroth + r.step)
-Base.last(r::FixedRange{T}) where {T} = convert(T, r.zeroth + r.step*r.length)
+@inline Base.first(r::FixedRange{T}) where {T} = convert(T, r.zeroth + r.step)
+@inline Base.last(r::FixedRange{T}) where {T} = convert(T, r.zeroth + r.step*r.length)
 
-function Base.getindex(r::FixedRange{T}, i::Integer)::T where {T}
+@inline function Base.getindex(r::FixedRange{T}, i::Integer)::T where {T}
     @boundscheck checkbounds(r, i)
     convert(T, r.zeroth + i*r.step)
 end
 
-function Base.getindex(r::StepRange{T}, s::FixedRange{<:Integer}) where {T}
+@inline function Base.getindex(r::StepRange{T}, s::FixedRange{<:Integer}) where {T}
     @boundscheck checkbounds(r, s)
     FixedStepRange{T}(zeroth(r) + zeroth(s)*step(r), step(r)*step(s), length(s))
 end
 
-function Base.getindex(r::AbstractUnitRange{T}, s::FixedUnitRange{<:Integer}) where {T}
+@inline function Base.getindex(r::AbstractUnitRange{T}, s::FixedUnitRange{<:Integer}) where {T}
     @boundscheck checkbounds(r, s)
     FixedUnitRange{T}(zeroth(r) + zeroth(s)*step(r), length(s))
 end
@@ -128,8 +128,8 @@ const FixedOneTo{N} = FixedUnitRange{Int, FixedInteger{0}, FixedInteger{N}}
 Base.@pure FixedOneTo(n::Integer) = FixedOneTo{n}()
 Base.@pure FixedOneTo(::FixedInteger{N}) where N = FixedOneTo{N}()
 
-Base.OneTo(n::FixedInteger) = FixedOneTo(n)
-Base.:(:)(a::FixedInteger{1}, b::FixedInteger) = FixedOneTo(b)
+@inline Base.OneTo(n::FixedInteger) = FixedOneTo(n)
+@inline Base.:(:)(a::FixedInteger{1}, b::FixedInteger) = FixedOneTo(b)
 
 function Base.show(io::IO, r::FixedOneTo{N}) where N
     print(io, "FixedOneTo(", N, ")")
@@ -168,5 +168,5 @@ Base.:*(r::FixedRange, a::Number) = a*r
 broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::Number,r::FixedRange) = a*r
 broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::FixedRange,a::Number) = a*r
 
-Base.eachindex(r::FixedRange{<:Any, <:Any, <:Any, <:FixedInteger}) =
+@inline Base.eachindex(r::FixedRange{<:Any, <:Any, <:Any, <:FixedInteger}) =
     FixedOneTo(r.length)

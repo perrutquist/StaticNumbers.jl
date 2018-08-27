@@ -15,7 +15,7 @@ struct FixedInteger{X} <: Integer
     end
 end
 
-FixedInteger(x::Integer) = FixedInteger{x}()
+Base.@pure FixedInteger(x::Integer) = FixedInteger{x}()
 
 """
 A `FixedReal` is a `Real` whose value is stored in the type, and which
@@ -28,7 +28,7 @@ struct FixedReal{X} <: Real
     end
 end
 
-FixedReal(x::Real) = FixedReal{x}()
+Base.@pure FixedReal(x::Real) = FixedReal{x}()
 
 """
 A `FixedNumber` is a `Number` whose value is stored in the type, and which
@@ -41,7 +41,7 @@ struct FixedNumber{X} <: Number
     end
 end
 
-FixedNumber(x::Number) = FixedNumber{x}()
+Base.@pure FixedNumber(x::Number) = FixedNumber{x}()
 
 """
 `Fixed{X}` is short-hand for the `Union` of `FixedInteger{X}`, `FixedReal{X}`
@@ -87,7 +87,7 @@ function Base.convert(T::Type{<:Fixed{X}}, y::Number) where {X}
     return T()
 end
 
-Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
+@inline Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
 
 # TODO: Constructors to avoid Fixed{Fixed}
 
