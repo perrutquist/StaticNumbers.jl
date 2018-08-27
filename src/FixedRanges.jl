@@ -144,6 +144,9 @@ Base.:-(r::FixedOrdinalRange) = FixedOrdinalRange(-r.zeroth, -r.step, r.length)
 Base.:-(r::FixedOrdinalRange{<:Any,<:Integer,FixedInteger{-1}}) = FixedUnitRange(-r.zeroth, r.length)
 Base.:-(r::FixedUnitRange) = FixedOrdinalRange(-r.zeroth, Fixed(-1), r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::FixedRange) = -r
+#broadcasted(::DefaultArrayStyle{1}, ::typeof(-), a::Number, r::FixedRange) = FixedOrdinalRange(a-r.zeroth, -r.step, r.length)
+#broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::FixedOrdinalRange, a::Number) = FixedOrdinalRange(r.zeroth-q, r.step, r.length)
+#broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::FixedUnitRange, a::Real) = FixedUnitRange(r.zeroth-a, r.length)
 
 Base.:*(a::Number, r::FixedRange) = FixedOrdinalRange(a*r.zeroth, a*r.step, r.length)
 Base.:*(a::Number, r::FixedRange{<:Any, FixedInteger{0}}) = FixedOrdinalRange(Fixed(0), a*r.step, r.length)
