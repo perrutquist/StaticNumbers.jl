@@ -10,7 +10,6 @@ struct FixedOrdinalRange{T,Z,S,L} <: OrdinalRange{T,S}
     step::S
     length::L
     function FixedOrdinalRange{T,Z,S,L}(z::Z, s::S, l::L) where {T, Z, S, L<:Integer}
-        T == typeof(z+0*s) || throw(FixedRangeError)
         if L<:FixedInteger
             l >= 0 || throw(FixedRangeError)
         else
@@ -27,14 +26,16 @@ FixedOrdinalRange{T,Z,S,L}() where {T, Z<:Fixed, S<:Fixed, L<:FixedInteger} =
 
 """
 A `FixedUnitRange` is a type that is identical to `FixedOrdinalRange` but
-where the step is `FixedInteger{1}`. It is a subtype of UnitRange
+where the step is fixed to 1. It is a subtype of UnitRange.
+
+(It would be much simpler to just use `FixedOrdinalRange` with a `Fixed` step
+but then methods that expect a `UnitRange` would not work.)
 """
 struct FixedUnitRange{T,Z,L} <: AbstractUnitRange{T}
     zeroth::Z
     step::FixedInteger{1}
     length::L
     function FixedUnitRange{T,Z,L}(z::Z, l::L) where {T, Z, L<:Integer}
-        T == typeof(z+0) || throw(FixedRangeError)
         if L<:FixedInteger
             l >= 0 || throw(FixedRangeError)
         else
@@ -47,7 +48,7 @@ end
 FixedUnitRange{T,Z,L}() where {T, Z<:Fixed, L<:FixedInteger} =
     FixedUnitRange{T, Z, L}(Z(), L())
 FixedUnitRange(z::Z, l::L) where {Z, L<:Integer} =
-    FixedUnitRange{typeof(z+0), Z, L}(z, l)
+    FixedUnitRange{typeof(z+zero(z)), Z, L}(z, l)
 
 """
 `FixedRange(zeroth, step, length)`
@@ -68,8 +69,6 @@ to remain `Fixed` when an offset is added to the range.
 
 `FixedRange` is the union of `FixedOrdinalRange` and `FixedUnitRange`
 which are subtypes of `OrdinalRange` and `AbstractUnitRange` respectively.
-The `FixedRange` constructor will construct the appropriate type, depending on
-whether the `step` parameter is `Fixed(1)`.
 """
 const FixedRange{T,Z,S,L} = Union{FixedOrdinalRange{T,Z,S,L}, FixedUnitRange{T,Z,L}}
 
@@ -86,9 +85,10 @@ const FixedRange{T,Z,S,L} = Union{FixedOrdinalRange{T,Z,S,L}, FixedUnitRange{T,Z
 #FixedRange{T,Z,FixedInteger{1},L}() where {T, Z<:Fixed, L<:FixedInteger} =
 #    FixedUnitRange{T,Z,L}(Z(), L())
 
-FixedRange(r::OrdinalRange) = FixedOrdinalRange(first(r)-step(r), step(r), length(r))
-FixedRange(r::AbstractUnitRange) = FixedUnitRange(first(r)-step(r), length(r))
-#FixedUnitRange(r::UnitRange) = FixedUnitRange(first(r)-step(r), length(r))
+FixedRange(r::OrdinalRange) = FixedOrdinalRange(r)
+FixedOrdinalRange(r::OrdinalRange) = FixedOrdinalRange(first(r)-step(r), step(r), length(r))
+FixedRange(r::AbstractUnitRange) = FixedUnitRange(r)
+FixedUnitRange(r::UnitRange) = FixedUnitRange(first(r)-step(r), length(r))
 
 zeroth(r::FixedRange) = r.zeroth
 zeroth(r::AbstractRange) = first(r)-step(r)
@@ -97,14 +97,13 @@ Base.step(r::FixedRange) = r.step
 Base.length(r::FixedRange) = r.length
 Base.unsafe_length(r::FixedRange) = r.length
 
-# `first` and `last` might be used to initialize the index in a for-loop.
-# so they should never return `Fixed`.
-Base.first(r::FixedRange{T}) where {T} = T(r.zeroth + r.step)
-Base.last(r::FixedRange{T}) where {T} = T(r.zeroth + r.step*r.length)
+# `first` and `last` return elements of the array, so type T, never `Fixed`.
+Base.first(r::FixedRange{T}) where {T} = convert(T, r.zeroth + r.step)
+Base.last(r::FixedRange{T}) where {T} = convert(T, r.zeroth + r.step*r.length)
 
-function Base.getindex(r::FixedRange, i::Integer)
+function Base.getindex(r::FixedRange{T}, i::Integer)::T where {T}
     @boundscheck (0 < i <= length(r)) || Base.throw_boundserror(r, i)
-    r.zeroth + i*r.step
+    convert(T, r.zeroth + i*r.step)
 end
 
 """
@@ -125,7 +124,8 @@ end
 """
 `fixedlength(range)` converts to a range where the length is `Fixed`.
 """
-fixedlength(r::OrdinalRange) = FixedRange(zeroth(r), step(r), Fixed(length(r)))
+fixedlength(r::OrdinalRange) = FixedOrdinalRange(zeroth(r), step(r), Fixed(length(r)))
+fixedlength(r::OrdinalRange{<:Any, Fixed{1}}) = FixedUnitRange(zeroth(r), Fixed(length(r)))
 
 function Base.show(io::IO, r::FixedRange{<:Integer, <:Integer, <:Integer, <:FixedInteger})
     print(io, "fixedlength(", first(r), ":")
@@ -133,17 +133,23 @@ function Base.show(io::IO, r::FixedRange{<:Integer, <:Integer, <:Integer, <:Fixe
     print(io, last(r), ")")
 end
 
-Base.:+(a,r::FixedOrdinalRange) = FixedOrdinalRange(a+r.zeroth, r.step, r.length)
-Base.:+(a,r::FixedUnitRange) = FixedUnitRange(a+r.zeroth, r.length)
-Base.:+(r::FixedRange,a) = a+r
+import Base.Broadcast: broadcasted, DefaultArrayStyle
+
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Number, r::FixedOrdinalRange) = FixedOrdinalRange(a+r.zeroth, r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::FixedOrdinalRange, a::Number) = FixedOrdinalRange(a+r.zeroth, r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Real, r::FixedUnitRange) = FixedUnitRange(a+r.zeroth, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::FixedUnitRange, a::Real) = FixedUnitRange(a+r.zeroth, r.length)
 
 Base.:-(r::FixedOrdinalRange) = FixedOrdinalRange(-r.zeroth, -r.step, r.length)
 Base.:-(r::FixedOrdinalRange{<:Any,<:Integer,FixedInteger{-1}}) = FixedUnitRange(-r.zeroth, r.length)
 Base.:-(r::FixedUnitRange) = FixedOrdinalRange(-r.zeroth, Fixed(-1), r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::FixedRange) = -r
 
-Base.:*(a::Number,r::FixedRange) = FixedOrdinalRange(a*r.zeroth, a*r.step, r.length)
-Base.:*(a::Number,r::FixedRange{<:Any, FixedInteger{0}}) = FixedOrdinalRange(Fixed(0), a*r.step, r.length)
-Base.:*(r::FixedRange,a::Number) = a*r
+Base.:*(a::Number, r::FixedRange) = FixedOrdinalRange(a*r.zeroth, a*r.step, r.length)
+Base.:*(a::Number, r::FixedRange{<:Any, FixedInteger{0}}) = FixedOrdinalRange(Fixed(0), a*r.step, r.length)
+Base.:*(r::FixedRange, a::Number) = a*r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::Number,r::FixedRange) = a*r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::FixedRange,a::Number) = a*r
 
 Base.eachindex(r::FixedRange{<:Any, <:Any, <:Any, <:FixedInteger}) =
     FixedOneTo(r.length)

@@ -103,6 +103,9 @@ end
 
 # Test FixedRanges
 
+@test fixedlength(1:3) isa FixedRange
+@test length(fixedlength(1:3)) === Fixed(3)
+
 r = FixedOrdinalRange(1, 2, Fixed(3))
 
 @test r isa FixedRange
@@ -115,10 +118,23 @@ r = FixedOrdinalRange(1, 2, Fixed(3))
 @test all(collect(r) .== [3, 5, 7])
 @test all(2*r .== 2*(3:2:7))
 @test all(r*5 .== (3:2:7)*5)
-@test all(7+r .== 10:2:14)
-@test all(r+7 .== 10:2:14)
+@test all(2 .* r .== 2 .* (3:2:7))
+@test all(r .* 5 .== (3:2:7) .* 5)
+@test all(7 .+ r .== 7 .+ (3:2:7))
+@test all(r .+ 7 .== (3:2:7) .+ 7)
+@test all(7 .- r .== 7 .- (3:2:7))
+@test all(r .- 7 .== (3:2:7) .- 7)
 @test all(-r .== -(3:2:7))
+@test +r === r
+@test .+r === r
+@test .-(.-r) === r
 @test -(-r) === r
+@test typeof(7 .+ r) == typeof(r)
+@test typeof(r .+ 7) == typeof(r)
+@test typeof(7 .* r) == typeof(r)
+@test typeof(r .* 7) == typeof(r)
+@test typeof(7 .+ 5 .* r) == typeof(r)
+@test typeof(r .* 5 .+ 7) == typeof(r)
 
 ur = FixedUnitRange(2, Fixed(3))
 @test ur isa FixedRange
@@ -131,12 +147,21 @@ ur = FixedUnitRange(2, Fixed(3))
 @test all(collect(ur) .== [3, 4, 5])
 @test all(2*ur .== 2*(3:5))
 @test all(ur*5 .== (3:5)*5)
-@test all(7+ur .== 10:12)
-@test all(ur+7 .== 10:12)
+@test all(2 .* ur .== 2 .* (3:5))
+@test all(ur .* 5 .== (3:5) .* 5)
+@test all(7 .+ ur .== 7 .+ (3:5))
+@test all(ur .+ 7 .== (3:5) .+ 7)
 @test all(-ur .== -(3:5))
-@test -(-ur) === ur 
-
-
+@test +ur === ur
+@test .+ur === ur
+@test .-(.-ur) === ur
+@test -(-ur) === ur
+@test typeof(7 .+ ur) == typeof(ur)
+@test typeof(ur .+ 7) == typeof(ur)
+@test length(7 .* ur) === Fixed(3)
+@test length(ur .* 7) === Fixed(3)
+@test length(7 .+ 5 .* ur) === Fixed(3)
+@test length(ur .* 5 .+ 7) === Fixed(3)
 
 # Test types
 @test FixedRange(1:3) isa FixedUnitRange
@@ -144,6 +169,4 @@ ur = FixedUnitRange(2, Fixed(3))
 
 # Test that type inferrence is working
 @test Base.return_types(*, (Int, typeof(r)))[1] === typeof(r)
-@test Base.return_types(+, (Int, typeof(r)))[1] === typeof(r)
 @test Base.return_types(*, (Int, typeof(ur)))[1] === typeof(r)
-@test Base.return_types(+, (Int, typeof(ur)))[1] === typeof(ur)
