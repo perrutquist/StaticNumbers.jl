@@ -106,13 +106,13 @@ end
 @test fixedlength(1:3) isa FixedRange
 @test length(fixedlength(1:3)) === Fixed(3)
 
-r = FixedOrdinalRange(1, 2, Fixed(3))
+r = FixedStepRange(1, 2, Fixed(3))
 
 @test r isa FixedRange
 @test r isa FixedRange{Int, Int, Int, <:Fixed}
 @test r isa FixedRange{Int, Int, Int, <:Fixed{3}}
 @test r isa FixedRange{Int, Int, Int, FixedInteger{3}}
-@test r isa FixedNumbers.FixedOrdinalRange{Int, Int, Int, FixedInteger{3}}
+@test r isa FixedNumbers.FixedStepRange{Int, Int, Int, FixedInteger{3}}
 @test all(r .== 3:2:7)
 @test r[2] == 5
 @test all(collect(r) .== [3, 5, 7])
@@ -137,6 +137,7 @@ r = FixedOrdinalRange(1, 2, Fixed(3))
 @test typeof(r .* 7) == typeof(r)
 @test typeof(7 .+ 5 .* r) == typeof(r)
 @test typeof(r .* 5 .+ 7) == typeof(r)
+@test all( (7:3:100)[r] .== (7:3:100)[3:2:7] )
 
 ur = FixedUnitRange(2, Fixed(3))
 @test ur isa FixedRange
@@ -166,10 +167,11 @@ ur = FixedUnitRange(2, Fixed(3))
 @test length(ur .* 7) === Fixed(3)
 @test length(7 .+ 5 .* ur) === Fixed(3)
 @test length(ur .* 5 .+ 7) === Fixed(3)
+@test all( (7:3:100)[ur] .== (7:3:100)[3:5] )
 
 # Test types
 @test FixedRange(1:3) isa FixedUnitRange
-@test FixedRange(1:2:4) isa FixedOrdinalRange
+@test FixedRange(1:2:4) isa FixedStepRange
 
 # Test that type inferrence is working
 @test Base.return_types(*, (Int, typeof(r)))[1] === typeof(r)
