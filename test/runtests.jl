@@ -101,6 +101,8 @@ end
 @test sqrt(Fixed(1)) === Fixed(1)
 @test rem(Fixed(1), Fixed(1)) === Fixed(0)
 
+@test ntuple(identity, Fixed(5)) === ntuple(identity, Val(5))
+
 # Test FixedRanges
 
 @test fixedlength(1:3) isa FixedRange

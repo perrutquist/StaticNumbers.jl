@@ -152,6 +152,9 @@ end
 Base.:^(x::Fixed{X}, ::FixedInteger{p}) where {X,p} = Base.literal_pow(^, X, Val(p))
 Base.:^(x::Fixed{X}, ::FixedInteger{X}) where {X} = Base.literal_pow(^, X, Val(X)) #disambig
 
+# ntuple accepts Val, so it should also accept fixed
+@inline Base.ntuple(f::F, ::FixedInteger{N}) where {F,N} = Base.ntuple(f, Val(N))
+
 # For brevity, all `Fixed` numbers are displayed as `Fixed(X)`, rather than, for
 # example, `FixedInteger{X}()`. It is possible to discern between the different
 # types of `Fixed` by looking at `X`.

@@ -10,8 +10,10 @@ Data that is passed in type parameters is (usually) handled at compile-time,
 rather than at run-time. In certain cases this can lead to
 better performance.
 For this reason, some functions accept "value type" arguments, `Val{X}()`,
-where `X` is an argument that is passed at compile-time. (See the Julia
-documentation.) `Fixed` is an alternative to `Val` which is specifically
+where `X` is an argument that is passed at compile-time.
+[manual/performance-tips.html#Types-with-values-as-parameters-1]
+[manual/types.html#"Value-types"-1]
+`Fixed` is an alternative to `Val` which is specifically
 designed to handle numbers.
 
 The difference between `Val` and `Fixed` is that `Fixed` types
@@ -27,11 +29,15 @@ For brevity, all three types are displayed as `Fixed(X)`, and it is also
 recommended to create them using this syntax.
 
 By default, any operation on a `Fixed` will result in a non-`Fixed` type.
-For example, `Fixed(1)*Fixed(1)` gives `1`, not `Fixed(1)`. (Exceptions
+For example, `Fixed(2)+Fixed(2)` gives `4`, not `Fixed(4)`. (Exceptions
 are methods that return their input argument unchanged.)
 It is possible to change this behavior by method overloading.
 The `@fixednumbers` macro can be used on a small set of `Fixed` numbers
 to make certain operations preserve the `Fixed` type when possible.
+
+It is important to not make the set of `Fixed` numbers too large,
+as this can lead to a lot of compilation overhead. See:
+[manual/performance-tips.html#The-dangers-of-abusing-multiple-dispatch-(aka,-more-on-types-with-values-as-parameters)-1]
 
 There is no `FixedRational` datatype, but a `FixedReal` with a
 `Rational` type parameter will convert and promote like its parameter.
