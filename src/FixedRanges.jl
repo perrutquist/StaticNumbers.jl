@@ -131,6 +131,11 @@ Base.@pure FixedOneTo(::FixedInteger{N}) where N = FixedOneTo{N}()
 @inline Base.OneTo(n::FixedInteger) = FixedOneTo(n)
 @inline Base.:(:)(a::FixedInteger{1}, b::FixedInteger) = FixedOneTo(b)
 
+# These functions from base/abstractarray.jl need to be extended to also accept FixedOneTo
+Base.similar(a::AbstractArray, ::Type{T}, dims::Tuple{Union{Integer, Base.OneTo, FixedOneTo}, Vararg{Union{Integer, Base.OneTo, FixedOneTo}}}) where {T} = similar(a, T, Base.to_shape(dims))
+Base.similar(::Type{T}, shape::Tuple{Union{Integer, Base.OneTo, FixedOneTo}, Vararg{Union{Integer, Base.OneTo, FixedOneTo}}}) where {T<:AbstractArray} = similar(T, Base.to_shape(shape))
+Base.to_shape(r::FixedOneTo) = Int(length(r))
+
 function Base.show(io::IO, r::FixedOneTo{N}) where N
     print(io, "FixedOneTo(", N, ")")
 end

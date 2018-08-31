@@ -178,3 +178,12 @@ ur = FixedUnitRange(2, Fixed(3))
 # Test that type inferrence is working
 @test Base.return_types(*, (Int, typeof(r)))[1] === typeof(r)
 @test Base.return_types(*, (Int, typeof(ur)))[1] === typeof(r)
+
+# Test array handling with fixed ranges
+A = rand(16,16)
+B = rand(Fixed(16),Fixed(16))
+C = A[fixedlength(5:8),FixedOneTo(4)]
+@test all(C .== A[fixedlength(5:8),FixedOneTo(4)])
+A[FixedOneTo(4),FixedOneTo(4)] = C
+@test all(A[FixedOneTo(4),FixedOneTo(4)] .== C)
+@test all(fixedlength(3:4).^2 == (3:4).^2)
