@@ -80,6 +80,8 @@ for T in (FixedInteger, FixedReal, FixedNumber)
     @eval Base.promote(::$T{X}, ys::$T{X}...) where {X} = ntuple(i->X, 1+length(ys))
     @eval Base.promote_type(::Type{$T{X}}, ::Type{$T{X}}) where {X} = typeof(X)
     @eval Base.promote_typeof(::$T{X}, ::$T{X}...) where {X} = typeof(X)
+    # To avoid infinite recursion, we need this:
+    @eval Base.promote_type(::Type{$T{X}}, S::Type...) where {X} = promote_type(typeof(X), promote_type(S...))
 end
 
 Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{Y}}) where {X,Y} =
@@ -87,6 +89,10 @@ Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{Y}}) where {X,Y} =
 
 Base.promote_rule(::Type{<:Fixed{X}}, ::Type{T}) where {X,T<:Number} =
     promote_type(typeof(X), T)
+
+
+# Bool has a special rule that we need to override?
+#Base.promote_rule(::Type{Bool}, ::Type{FixedInteger{X}}) where {X} = promote_type(Bool, typeof(X))
 
 function Base.convert(T::Type{<:Fixed{X}}, y::Number) where {X}
     X == y || throw(InexactError(:convert, T, y))
@@ -187,7 +193,7 @@ end
 
 # This function should maybe be renamed.
 # Possible names: fixto, fixif, maybefix
-# Also, it should have a unicode or-like operator alias.
+# Also, it should have a unicode or-like binary operator alias.
 """
 fix(x, y1, y2, ...)
 Test if a number `x` is equal to any of the `Fixed` numbers `y1`, `y2`, ...,
