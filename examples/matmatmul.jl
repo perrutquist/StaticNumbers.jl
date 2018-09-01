@@ -1,26 +1,14 @@
+# For beenchmarking, use: julia -O3
+
 module MatMatMulExample
 
 using FixedNumbers
 using StaticArrays
 using LinearAlgebra
 
-const StaticSubMatrix{M,N,T} =
-    SubArray{T,2,<:AbstractArray{T,2},
-        <:Tuple{
-            <:FixedUnitRange{<:Integer,<:Integer,FixedInteger{M}},
-            <:FixedUnitRange{<:Integer,<:Integer,FixedInteger{N}}
-        },B} where {B}
-
-#StaticArrays.SMatrix
-s(m::StaticSubMatrix{M,N,T}) where {T<:Number, M, N} = SMatrix{M,N,T}(m)
-
-#Base.*
-#⊗(a::AbstractMatrix{T}, b::AbstractMatrix{T}) where {T} = a*b
-#⊗(a::StaticSubMatrix{M,N,T}, b::StaticSubMatrix{N,M,T}) where {M,N,T} = s(a)*s(b)
-
-#Local version of Base.size that preserves `Fixed` size of StaticSubMatrix
-#size(args...) = Base.size(args...)
-#size(a::StaticSubMatrix{M,N}) where {M,N} = (Fixed(M), Fixed(N))
+# Note: I'd like to be able to do this with `view`s that result
+# in fixed-size subarrays, but at the moment, those are still allocating.
+# So passing ranges as separate arguments instead.
 
 "A struct that stores the block sizes used in matmatmul"
 struct BlockSizes{TM<:Integer,TN<:Integer,TK<:Integer}
@@ -34,9 +22,9 @@ const aliaserr = ErrorException("Destination matrix cannot be one of inputs")
 
 function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
         mnk::BlockSizes, mnks::BlockSizes...)
-    (N,M) = size(C)
+    (M,N) = size(C)
     K = size(A,2)
-    N == size(A,1) && M == size(B,2) && K == size(B,1) || throw(dimerr)
+    M == size(A,1) && N == size(B,2) && K == size(B,1) || throw(dimerr)
     (C===A || C===B) && throw(aliaserr)
 
     unsafe_mul!(C, A, B,
@@ -110,6 +98,22 @@ C[mm,nn] <- A[mm,:]*B[:,nn] + beta*C[mm,nn]
     return nothing
 end
 
+@inline function unsafe_submatmul!b(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+        mm::AbstractVector{<:Integer}, nn::AbstractVector{<:Integer},
+        tk::Integer, rk::Integer, k::Integer, beta::Number, bs::BlockSizes...)
+    kk = FixedOneTo(k)
+    submatmul!(C, A, B, mm, nn, kk, beta, bs...)
+    for h=1:tk-1
+        kk = h*k .+ FixedOneTo(k)
+        submatmul!(C, A, B, mm, nn, kk, Fixed(1), bs...)
+    end
+    if rk>0
+        kk = tk*k .+ FixedOneTo(rk)
+        submatmul!(C, A, B, mm, nn, kk, Fixed(1), bs...)
+    end
+    return nothing
+end
+
 # Fast, zero-size LinearIndices for Static matrices if we define:
 Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
 
@@ -163,18 +167,24 @@ end
 #store!(A::Transpose, mm::FixedUnitRange, nn::FixedUnitRange, Y::StaticMatrix) =
 #   store!(T, parent(A), nn, mm, transpose(Y))
 
-A = MMatrix{16,16}(randn(16,16))
-Av1 = view(A, fixedlength(1:4), fixedlength(5:8))
-Av2 = view(A, fixedlength(5:8), fixedlength(1:4))
 
-sAv1 = s(Av1)
-Av2 .= sAv1
+end # module
 
-B = MMatrix{16,16}(randn(16,16))
-C = MMatrix{16,16}(zeros(16,16))
+using FixedNumbers
+using StaticArrays
+using LinearAlgebra
+using BenchmarkTools
 
-mymul!(C, A, B, BlockSizes(Fixed(4), Fixed(4), Fixed(4)))
+m=17
+n=18
+k=19
+
+A = MMatrix{m,k}(randn(m,k))
+B = MMatrix{k,n}(randn(k,n))
+C = MMatrix{m,n}(zeros(m,n))
+
+MatMatMulExample.mymul!(C, A, B, MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(4)))
 
 println("Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
 
-end # module
+@benchmark MatMatMulExample.mymul!($MC, $MA, $MB, $(MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(2))))
