@@ -17,17 +17,46 @@ struct BlockSizes{TM<:Integer,TN<:Integer,TK<:Integer}
     k::TK
 end
 
-const dimerr = DimensionMismatch("Wrong size matrix")
+const dimerr = DimensionMismatch("Incompatible matrix axes")
 const aliaserr = ErrorException("Destination matrix cannot be one of inputs")
 
+@inline function chkbnd(inbounds::Integer
+                A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
+                mm::AbstractRange, nn::AbstractRange, kk::AbstractRange)
+    if !inbounds
+        checkbounds(C, mm, nn)
+        checkbounds(A, mm, kk)
+        checkbounds(B, kk, nn)
+    end
+end
+
+# chkbnd(inbounds::Integer
+#                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
+#                 mm::AbstractRange, nn::AbstractRange,
+#                 tk::Integer, rk::Integer) =
+#     chkbnd(inbounds, A, B, C, mm, nn, Base.OneTo(tk*k+rk))
+#
+# chkbnd(inbounds::Integer
+#                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
+#                 mm::AbstractRange,
+#                 tn::Integer, tk::Integer,
+#                 rn::Integer, rk::Integer) =
+#     chkbnd(inbounds, A, B, C, mm, Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+#
+# chkbnd(inbounds::Integer
+#                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
+#                 tm::Integer, tn::Integer, tk::Integer,
+#                 rm::Integer, rn::Integer, rk::Integer) =
+#     chkbnd(inbounds, A, B, C, Base.OneTo(tm*m+rm), Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+
 function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
-        mnk::BlockSizes, mnks::BlockSizes...)
+                mnk::BlockSizes, mnks::BlockSizes...)
     (M,N) = size(C)
     K = size(A,2)
-    M == size(A,1) && N == size(B,2) && K == size(B,1) || throw(dimerr)
+    (1:M,1:K) == axes(A) && (1:K,1:N) == axes(B) && (1:M,1:N) == axes(C) || throw(dimerr)
     (C===A || C===B) && throw(aliaserr)
 
-    unsafe_mul!(C, A, B,
+    @inbounds mymul!(C, A, B,
         M÷mnk.m, N÷mnk.n, K÷mnk.k,
         M%mnk.m, N%mnk.n, Fixed(K%mnk.k),
         mnk.m, mnk.n, mnk.k,
@@ -36,10 +65,10 @@ end
 
 """
 C <- A*B + beta*C
-`unsafe_mul` assumes that dimensions are correct.
+`mymul` assumes that dimensions are correct.
 Calling this function with incorrect inputs can lead to memory corruption.
 """
-#function unsafe_mul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+#function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
 #        tm::Integer, tn::Integer, tk::Integer,
 #        rm::Integer, rn::Integer, rk::Integer,
 #        m::Integer, n::Integer, k::Integer,
@@ -47,34 +76,49 @@ Calling this function with incorrect inputs can lead to memory corruption.
 #        beta::Number=Fixed(false))
 #end
 
-function unsafe_mul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
         tm::Integer, tn::Integer, tk::Integer,
         rm::Integer, rn::Integer, rk::Integer,
         m::Integer, n::Integer, k::Integer,
         beta::Number=Fixed(false))
+    # @boundscheck begin
+    #     mm = Base.OneTo(tm*m+rm)
+    #     nn = Base.OneTo(tn*n+rn)
+    #     kk = Base.OneTo(tk*k+rk)
+    #     checkbounds(C, mm, nn)
+    #     checkbounds(A, mm, kk)
+    #     checkbounds(B, kk, nn)
+    # end
     for i=0:tm-1
         mm = i*m .+ FixedOneTo(m)
-        unsafe_rowsmul!(C, A, B, mm, tn, tk, rn, rk, n, k, beta)
+        @inbounds myrowsmul!(C, A, B, mm, tn, tk, rn, rk, n, k, beta)
     end
     if rm>0
         mm = tm*m .+ FixedOneTo(rm)
-        unsafe_rowsmul!(C, A, B, mm, tn, tk, rn, rk, n, k, beta)
+        @inbounds myrowsmul!(C, A, B, mm, tn, tk, rn, rk, n, k, beta)
     end
 end
 
 """
 C[mm,:] <- A[mm,:]*B + beta*C[mm,:]
 """
-@inline function unsafe_rowsmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+@inline function myrowsmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
         mm::AbstractVector{<:Integer}, tn::Integer, tk::Integer,
         rn::Integer, rk::Integer, n::Integer, k::Integer, beta::Number)
+    # @boundscheck begin
+    #     nn = Base.OneTo(tn*n+rn)
+    #     kk = Base.OneTo(tk*k+rk)
+    #     checkbounds(C, mm, nn)
+    #     checkbounds(A, mm, kk)
+    #     checkbounds(B, kk, nn)
+    # end
     for j=0:tn-1
         nn = j*n .+ FixedOneTo(n)
-        unsafe_submatmul!(C, A, B, mm, nn, tk, rk, k, beta)
+        @inbounds mysubmatmul!(C, A, B, mm, nn, tk, rk, k, beta)
     end
     if rn>0
         nn = tn*n .+ FixedOneTo(rn)
-        unsafe_submatmul!(C, A, B, mm, nn, tk, rk, k, beta)
+        @inbounds mysubmatmul!(C, A, B, mm, nn, tk, rk, k, beta)
     end
 end
 
@@ -82,55 +126,61 @@ end
 """
 C[mm,nn] <- A[mm,:]*B[:,nn] + beta*C[mm,nn]
 """
-@inline function unsafe_submatmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+@inline function mysubmatmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
         mm::AbstractVector{<:Integer}, nn::AbstractVector{<:Integer},
         tk::Integer, rk::Integer, k::Integer, beta::Number)
-    X = beta * load(SMatrix, C, mm, nn)
+    # @boundscheck begin
+    #     kk = Base.OneTo(tk*k+rk)
+    #     checkbounds(C, mm, nn)
+    #     checkbounds(A, mm, kk)
+    #     checkbounds(B, kk, nn)
+    # end
+    X = beta * @inbounds load(SMatrix, C, mm, nn)
     for h=0:tk-1
         kk = h*k .+ FixedOneTo(k)
-        X += load(SMatrix, A, mm, kk) * load(SMatrix, B, kk, nn)
+        X += @inbounds load(SMatrix, A, mm, kk) * @inbounds load(SMatrix, B, kk, nn)
     end
     if rk>0
         kk = tk*k .+ FixedOneTo(rk)
-        X += load(SMatrix, A, mm, kk) * load(SMatrix, B, kk, nn)
+        X += @inbounds load(SMatrix, A, mm, kk) * @inbounds load(SMatrix, B, kk, nn)
     end
-    store!(C, mm, nn, X)
+    @inbounds store!(C, mm, nn, X)
     return nothing
 end
 
-@inline function unsafe_submatmul!b(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
-        mm::AbstractVector{<:Integer}, nn::AbstractVector{<:Integer},
-        tk::Integer, rk::Integer, k::Integer, beta::Number, bs::BlockSizes...)
-    kk = FixedOneTo(k)
-    submatmul!(C, A, B, mm, nn, kk, beta, bs...)
-    for h=1:tk-1
-        kk = h*k .+ FixedOneTo(k)
-        submatmul!(C, A, B, mm, nn, kk, Fixed(1), bs...)
-    end
-    if rk>0
-        kk = tk*k .+ FixedOneTo(rk)
-        submatmul!(C, A, B, mm, nn, kk, Fixed(1), bs...)
-    end
-    return nothing
-end
+# @inline function mysubmatmul!b(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+#         mm::AbstractVector{<:Integer}, nn::AbstractVector{<:Integer},
+#         tk::Integer, rk::Integer, k::Integer, beta::Number, bs::BlockSizes...)
+#     kk = FixedOneTo(k)
+#     submatmul!(C, A, B, mm, nn, kk, beta, bs...)
+#     for h=1:tk-1
+#         kk = h*k .+ FixedOneTo(k)
+#         submatmul!(C, A, B, mm, nn, kk, Fixed(1), bs...)
+#     end
+#     if rk>0
+#         kk = tk*k .+ FixedOneTo(rk)
+#         submatmul!(C, A, B, mm, nn, kk, Fixed(1), bs...)
+#     end
+#     return nothing
+# end
 
 # Fast, zero-size LinearIndices for Static matrices if we define:
 Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
 
 "Read a small subset of a StaticMatrix into a StaticMatrix of given type"
-@generated function load(::Type{T}, A::StaticMatrix{M,N},
+@generated function load(::Type{T}, C::StaticMatrix{M,N},
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
         nn::FixedUnitRange{Int,IN,FixedInteger{n}}) where {T,M,N,IM,IN,m,n}
-    # TODO @boundscheck checkbounds
     a = Vector{Expr}()
     L = LinearIndices((M,N))
     for j=1:n
         for i=1:m
-            push!(a, :( A[k+$(L[i,j])] ))
+            push!(a, :( C[k+$(L[i,j])] ))
         end
     end
     return quote
         Base.@_inline_meta
+        @boundscheck checkbounds(C, mm, nn)
         k = M*zeroth(nn) + zeroth(mm)
         @inbounds T{m,n}($(Expr(:tuple, a...)))
     end
@@ -139,22 +189,23 @@ end
 # then transpose.
 
 "Store a small StaticMatrix into a subset of a StaticMatrix"
-@generated function store!(A::StaticMatrix{M,N},
+@generated function store!(C::StaticMatrix{M,N},
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
-        Y::StaticMatrix{m,n}) where {M,N,IM,IN,m,n}
+        X::StaticMatrix{m,n}) where {M,N,IM,IN,m,n}
     a = Vector{Expr}()
     y = Vector{Expr}()
     L = LinearIndices((M,N))
     Ly = LinearIndices((m,n))
     for j=1:n
         for i=1:m
-            push!(a, :( A[k+$(L[i,j])] ))
-            push!(y, :( Y[$(Ly[i,j])] ))
+            push!(a, :( C[k+$(L[i,j])] ))
+            push!(y, :( X[$(Ly[i,j])] ))
         end
     end
     return quote
         Base.@_inline_meta
+        @boundscheck checkbounds(C, mm, nn)
         k = M*zeroth(nn) + zeroth(mm)
         @inbounds $(Expr(:tuple, a...)) = $(Expr(:tuple, y...))
         nothing

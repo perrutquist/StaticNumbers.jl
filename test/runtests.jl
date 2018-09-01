@@ -141,6 +141,14 @@ r = FixedStepRange(1, 2, Fixed(3))
 @test typeof(r .* 5 .+ 7) == typeof(r)
 @test all( (7:3:100)[r] .== (7:3:100)[3:2:7] )
 
+@test !(Fixed(false)) === true
+@test !(Fixed(true)) === false
+@test true isa FixedOrBool
+@test Fixed(true) isa FixedOrBool
+
+@test 1 isa FixedOrInt
+@test Fixed(1) isa FixedOrInt
+
 ur = FixedUnitRange(2, Fixed(3))
 @test ur isa FixedRange
 @test ur isa FixedRange{Int, Int, <:Fixed, <:Fixed}

@@ -29,10 +29,12 @@ For brevity, all three types are displayed as `Fixed(X)`, and it is also
 recommended to create them using this syntax.
 
 By default, any operation on a `Fixed` will result in a non-`Fixed` type.
-For example, `Fixed(2)+Fixed(2)` gives `4`, not `Fixed(4)`. (Exceptions
-are methods that return their input argument unchanged.)
-It is possible to change this behavior by method overloading.
-The `@fixednumbers` macro can be used on a small set of `Fixed` numbers
+For example, `Fixed(2)+Fixed(2)` gives `4`, not `Fixed(4)`.
+But Julia's type inference engine is quite powerful! If `a` and `b` are `Fixed`,
+then the type of `Fixed(a+b)` will be inferred.
+
+It is of course also possible to overload methods to return `Fixed` for `Fixed`
+inputs. The `@fixednumbers` macro can be used on a small set of `Fixed` numbers
 to make certain operations preserve the `Fixed` type when possible.
 
 It is important to not make the set of `Fixed` numbers too large,

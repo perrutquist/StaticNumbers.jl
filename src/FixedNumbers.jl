@@ -1,6 +1,7 @@
 module FixedNumbers
 
-export Fixed, FixedInteger, FixedReal, FixedNumber, @fixednumbers, fix
+export Fixed, FixedInteger, FixedReal, FixedNumber, FixedOrInt, FixedOrBool,
+       @fixednumbers, fix
 
 const FixedError = ErrorException("Illegal type parameter for Fixed.")
 
@@ -63,6 +64,11 @@ Base.@pure Fixed(X::Integer) = FixedInteger{X}()
 Base.@pure Fixed(X::Real) = FixedReal{X}()
 Base.@pure Fixed(X::Number) = FixedNumber{X}()
 
+# Functions that take only `Int` may be too restrictive.
+# The FixedOrInt type union is often a better choice.
+const FixedOrInt = Union{FixedInteger, Int}
+
+# Promotion
 Base.promote_rule(::Type{<:Fixed{X}}, ::Type{<:Fixed{X}}) where {X} =
     typeof(X)
 Base.promote_rule(::Type{<:AbstractIrrational}, ::Type{<:Fixed{X}}) where {X} =
@@ -119,6 +125,11 @@ end
 for fun in (:zero, :one, :oneunit)
     @eval Base.$fun(::Type{<:Fixed{X}}) where {X} = Base.$fun(typeof(X))
 end
+
+# It's a pity there's no AbstractBool supertype.
+const FixedBool = Union{FixedInteger{false}, FixedInteger{true}}
+const FixedOrBool = Union{FixedBool, Bool}
+Base.:!(x::FixedBool) = !Bool(x)
 
 # For complex-valued inputs, there's no auto-convert to floating-point.
 # We only support a limited subset of functions, which the user can extend
