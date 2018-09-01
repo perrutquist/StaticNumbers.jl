@@ -20,35 +20,27 @@ end
 const dimerr = DimensionMismatch("Incompatible matrix axes")
 const aliaserr = ErrorException("Destination matrix cannot be one of inputs")
 
-@inline function chkbnd(inbounds::Integer
+"""
+Check that ranges are in bounds for `mymul`.
+Instead of Julia's `@inbounds` mechanism, we pass `inbounds` explicitly
+as a `FixedOrBool` parameter. This works even when functions are not inlined,
+and makes it easier to eliminate bounds-checking code when using the @code_llvm
+macro.
+"""
+@inline function mulboundscheck(
                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
                 mm::AbstractRange, nn::AbstractRange, kk::AbstractRange)
-    if !inbounds
         checkbounds(C, mm, nn)
         checkbounds(A, mm, kk)
         checkbounds(B, kk, nn)
-    end
 end
 
-# chkbnd(inbounds::Integer
-#                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
-#                 mm::AbstractRange, nn::AbstractRange,
-#                 tk::Integer, rk::Integer) =
-#     chkbnd(inbounds, A, B, C, mm, nn, Base.OneTo(tk*k+rk))
-#
-# chkbnd(inbounds::Integer
-#                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
-#                 mm::AbstractRange,
-#                 tn::Integer, tk::Integer,
-#                 rn::Integer, rk::Integer) =
-#     chkbnd(inbounds, A, B, C, mm, Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
-#
-# chkbnd(inbounds::Integer
-#                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
-#                 tm::Integer, tn::Integer, tk::Integer,
-#                 rm::Integer, rn::Integer, rk::Integer) =
-#     chkbnd(inbounds, A, B, C, Base.OneTo(tm*m+rm), Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+"""
+C <- A*B + beta*C
 
+If `inbounds` is `true` then no check is performed that matrix sizes match
+block specifications. This can lead to memory corruption.
+"""
 function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
                 mnk::BlockSizes, mnks::BlockSizes...)
     (M,N) = size(C)
@@ -56,62 +48,39 @@ function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
     (1:M,1:K) == axes(A) && (1:K,1:N) == axes(B) && (1:M,1:N) == axes(C) || throw(dimerr)
     (C===A || C===B) && throw(aliaserr)
 
-    @inbounds mymul!(C, A, B,
+    mymul!(C, A, B, Fixed(false), Fixed(true),
         M÷mnk.m, N÷mnk.n, K÷mnk.k,
-        M%mnk.m, N%mnk.n, Fixed(K%mnk.k),
+        Fixed(M%mnk.m), Fixed(N%mnk.n), Fixed(K%mnk.k),
         mnk.m, mnk.n, mnk.k,
         mnks...)
 end
 
-"""
-C <- A*B + beta*C
-`mymul` assumes that dimensions are correct.
-Calling this function with incorrect inputs can lead to memory corruption.
-"""
-#function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
-#        tm::Integer, tn::Integer, tk::Integer,
-#        rm::Integer, rn::Integer, rk::Integer,
-#        m::Integer, n::Integer, k::Integer,
-#        mnks::Integer...;
-#        beta::Number=Fixed(false))
-#end
-
 function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
-        tm::Integer, tn::Integer, tk::Integer,
-        rm::Integer, rn::Integer, rk::Integer,
-        m::Integer, n::Integer, k::Integer,
-        beta::Number=Fixed(false))
-    # @boundscheck begin
-    #     mm = Base.OneTo(tm*m+rm)
-    #     nn = Base.OneTo(tn*n+rn)
-    #     kk = Base.OneTo(tk*k+rk)
-    #     checkbounds(C, mm, nn)
-    #     checkbounds(A, mm, kk)
-    #     checkbounds(B, kk, nn)
-    # end
+                beta::Number, inbounds::FixedOrBool,
+                tm::Integer, tn::Integer, tk::Integer,
+                rm::Integer, rn::Integer, rk::Integer,
+                m::Integer, n::Integer, k::Integer)
+    if !inbounds
+        mulboundscheck(A, B, C, Base.OneTo(tm*m+rm), Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+    end
     for i=0:tm-1
         mm = i*m .+ FixedOneTo(m)
-        @inbounds myrowsmul!(C, A, B, mm, tn, tk, rn, rk, n, k, beta)
+        myrowsmul!(C, A, B, beta, Fixed(true), mm, tn, tk, rn, rk, n, k)
     end
     if rm>0
         mm = tm*m .+ FixedOneTo(rm)
-        @inbounds myrowsmul!(C, A, B, mm, tn, tk, rn, rk, n, k, beta)
+        myrowsmul!(C, A, B, beta, Fixed(true), mm, tn, tk, rn, rk, n, k)
     end
 end
 
-"""
-C[mm,:] <- A[mm,:]*B + beta*C[mm,:]
-"""
+#C[mm,:] <- A[mm,:]*B + beta*C[mm,:]
 @inline function myrowsmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+        beta::Number, inbounds::FixedOrBool,
         mm::AbstractVector{<:Integer}, tn::Integer, tk::Integer,
-        rn::Integer, rk::Integer, n::Integer, k::Integer, beta::Number)
-    # @boundscheck begin
-    #     nn = Base.OneTo(tn*n+rn)
-    #     kk = Base.OneTo(tk*k+rk)
-    #     checkbounds(C, mm, nn)
-    #     checkbounds(A, mm, kk)
-    #     checkbounds(B, kk, nn)
-    # end
+        rn::Integer, rk::Integer, n::Integer, k::Integer)
+    if !inbounds
+        mulboundscheck(inbounds, A, B, C, mm, Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+    end
     for j=0:tn-1
         nn = j*n .+ FixedOneTo(n)
         @inbounds mysubmatmul!(C, A, B, mm, nn, tk, rk, k, beta)
@@ -123,9 +92,7 @@ C[mm,:] <- A[mm,:]*B + beta*C[mm,:]
 end
 
 # This is allocating unless k and rk are `FixedInteger`s
-"""
-C[mm,nn] <- A[mm,:]*B[:,nn] + beta*C[mm,nn]
-"""
+# C[mm,nn] <- A[mm,:]*B[:,nn] + beta*C[mm,nn]
 @inline function mysubmatmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
         mm::AbstractVector{<:Integer}, nn::AbstractVector{<:Integer},
         tk::Integer, rk::Integer, k::Integer, beta::Number)
@@ -234,8 +201,14 @@ A = MMatrix{m,k}(randn(m,k))
 B = MMatrix{k,n}(randn(k,n))
 C = MMatrix{m,n}(zeros(m,n))
 
+MA = MMatrix{16,16}(randn(16,16))
+MB = MMatrix{16,16}(randn(16,16))
+MC = MMatrix{16,16}(zeros(16,16))
+
 MatMatMulExample.mymul!(C, A, B, MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(4)))
 
 println("Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
 
-@benchmark MatMatMulExample.mymul!($MC, $MA, $MB, $(MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(2))))
+println(@benchmark MatMatMulExample.mymul!($C, $A, $B, $(MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(2)))))
+
+println(@benchmark MatMatMulExample.mymul!($MC, $MA, $MB, $(MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(2)))))
