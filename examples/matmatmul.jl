@@ -116,8 +116,12 @@ end
 end
 
 # @inline function mysubmatmul!b(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+#         beta::Number, inbounds::FixedOrBool,
 #         mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer},
 #         tk::Integer, rk::Integer, k::Integer, beta::Number, bs::BlockSizes...)
+#     if !inbounds
+#         checkmulbounds(inbounds, A, B, C, mm, nn, Base.OneTo(tk*k+rk))
+#     end
 #     kk = FixedOneTo(k)
 #     submatmul!(C, A, B, mm, nn, kk, beta, bs...)
 #     for h=1:tk-1
