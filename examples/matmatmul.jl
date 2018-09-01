@@ -4,13 +4,20 @@
 # in fixed-size subarrays, but at the moment, those are still allocating.
 # So passing ranges as separate arguments instead.
 
+# Instead of Julia's `@inbounds` mechanism, we pass `inbounds` explicitly
+# as a `FixedOrBool` parameter. This works even when functions are not inlined,
+# and makes it easier to eliminate bounds-checking code when using the @code_llvm
+# macro.
+# It's ugly, but it saves a few nanoseconds...
+# Probably future optimizations in Julia will eliminate the need for this.
+
 module MatMatMulExample
 
 using FixedNumbers
 using StaticArrays
 using LinearAlgebra
 
-const ffalse = Fixed(false)
+# Change this to `false` to enable bounds checking in every function.
 const ftrue = Fixed(true)
 
 "A struct that stores the block sizes used in matmatmul"
@@ -25,10 +32,6 @@ const aliaserr = ErrorException("Destination matrix cannot be one of inputs")
 
 """
 Check that ranges are in bounds for `mymul`.
-Instead of Julia's `@inbounds` mechanism, we pass `inbounds` explicitly
-as a `FixedOrBool` parameter. This works even when functions are not inlined,
-and makes it easier to eliminate bounds-checking code when using the @code_llvm
-macro.
 """
 @inline function checkmulbounds(
                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
@@ -103,14 +106,14 @@ end
     if !inbounds
         checkmulbounds(inbounds, A, B, C, mm, nn, Base.OneTo(tk*k+rk))
     end
-    X = beta * load(SMatrix, C, mm, nn, inbounds=ftrue)
+    X = beta * load(SMatrix, C, mm, nn, ftrue)
     for h=0:tk-1
         kk = h*k .+ FixedOneTo(k)
-        X += load(SMatrix, A, mm, kk, inbounds=ftrue) * load(SMatrix, B, kk, nn, inbounds=ftrue)
+        X += load(SMatrix, A, mm, kk, ftrue) * load(SMatrix, B, kk, nn, ftrue)
     end
     if rk>0
         kk = tk*k .+ FixedOneTo(rk)
-        X += load(SMatrix, A, mm, kk, inbounds=ftrue) * load(SMatrix, B, kk, nn, inbounds=ftrue)
+        X += load(SMatrix, A, mm, kk, ftrue) * load(SMatrix, B, kk, nn, ftrue)
     end
     store!(C, mm, nn, X, ftrue)
     return nothing
@@ -142,8 +145,8 @@ Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
 "Read a small subset of a StaticMatrix into a StaticMatrix of given type"
 @generated function load(::Type{T}, C::StaticMatrix{M,N},
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
-        nn::FixedUnitRange{Int,IN,FixedInteger{n}};
-        inbounds::FixedOrBool=ffalse) where {T,M,N,IM,IN,m,n}
+        nn::FixedUnitRange{Int,IN,FixedInteger{n}},
+        inbounds::FixedOrBool) where {T,M,N,IM,IN,m,n}
     a = Vector{Expr}()
     L = LinearIndices((M,N))
     for j=1:n
