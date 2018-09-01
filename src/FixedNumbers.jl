@@ -92,20 +92,24 @@ end
 # TODO: Constructors to avoid Fixed{Fixed}
 
 # Some of the more common constructors that do not default to `convert`
+# TODO:  We should have a (::Type{T})(x::Fixed) where {T<:Number} constructor
+# instead of all of these.
+# Need to figure out a way to avoid ambiguities.
 for T in (:Bool, :Int32, :UInt32, :Int64, :UInt64, :Int128, :Integer)
     @eval Base.$T(::FixedInteger{X}) where X = $T(X)
 end
-for T in (:Float32, :Float64, :AbstractFloat, :Rational)
-    @eval Base.$T(::Union{FixedInteger{X}, FixedReal{X}}) where X = $T(X)
-end
+(::Type{T})(x::Union{FixedReal{X}, FixedInteger{X}}) where {T<:AbstractFloat, X} = T(X)
+(::Type{T})(x::Fixed{X}) where {T<:Complex, X} = T(X)
 for T in (:ComplexF32, :ComplexF64, :Complex)
     @eval Base.$T(::Fixed{X}) where X = $T(X)
 end
 Rational{T}(::Union{FixedInteger{X}, FixedReal{X}}) where {T,X} = Rational{T}(X)
-Complex{T}(::Fixed{X}) where {T,X} = Rational{T}(X)
+Complex{T}(::Fixed{X}) where {T,X} = Complex{T}(X)
 # big(x) still defaults to convert.
 
 # Single-argument functions that do not already work.
+# Note: We're not attempting to support every function in Base.
+# TODO: Should have a macro for easily extending support.
 for fun in (:-, :zero, :one, :oneunit, :trailing_zeros, :widen, :decompose)
     @eval Base.$fun(::Fixed{X}) where X = Base.$fun(X)
 end
