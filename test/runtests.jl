@@ -149,8 +149,9 @@ r = FixedStepRange(1, 2, Fixed(3))
 @test 1 isa FixedOrInt
 @test Fixed(1) isa FixedOrInt
 
-@test oftype(Fixed(1), 2) === Fixed(2)
-@test oftype(Fixed(1.0), 2) === Fixed(2.0)
+@test offixedtype(Fixed(1), 2) === Fixed(2)
+@test offixedtype(Fixed(1), 2) === Fixed(2)
+@test offixedtype(1.0, 2) === 2.0
 
 ur = FixedUnitRange(2, Fixed(3))
 @test ur isa FixedRange

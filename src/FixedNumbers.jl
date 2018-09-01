@@ -1,7 +1,7 @@
 module FixedNumbers
 
 export Fixed, FixedInteger, FixedReal, FixedNumber, FixedOrInt, FixedOrBool,
-       @fixednumbers, fix
+       @fixednumbers, fix, offixedtype
 
 const FixedError = ErrorException("Illegal type parameter for Fixed.")
 
@@ -95,9 +95,9 @@ end
 
 Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
 
-# `oftype` is allowed to return a different Fixed.
-# Otherwise, it'd give InexactError all the time.
-Base.oftype(::Fixed{X}, y) where {X} = Fixed(oftype(X, y))
+"offixedtype(x,y) - like oftype(x,y), but return a `Fixed` `x` is a `Fixed`."
+offixedtype(::Fixed{X}, y) where {X} = Fixed(oftype(X, y))
+offixedtype(x, y) = oftype(x, y)
 
 # TODO: Constructors to avoid Fixed{Fixed}
 
