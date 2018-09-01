@@ -10,6 +10,7 @@ using FixedNumbers
 using StaticArrays
 using LinearAlgebra
 
+const ffalse = Fixed(false)
 const ftrue = Fixed(true)
 
 "A struct that stores the block sizes used in matmatmul"
@@ -102,14 +103,14 @@ end
     if !inbounds
         checkmulbounds(inbounds, A, B, C, mm, nn, Base.OneTo(tk*k+rk))
     end
-    X = beta * load(SMatrix, C, mm, nn, ftrue)
+    X = beta * load(SMatrix, C, mm, nn, inbounds=ftrue)
     for h=0:tk-1
         kk = h*k .+ FixedOneTo(k)
-        X += load(SMatrix, A, mm, kk, ftrue) * load(SMatrix, B, kk, nn, ftrue)
+        X += load(SMatrix, A, mm, kk, inbounds=ftrue) * load(SMatrix, B, kk, nn, inbounds=ftrue)
     end
     if rk>0
         kk = tk*k .+ FixedOneTo(rk)
-        X += load(SMatrix, A, mm, kk, ftrue) * load(SMatrix, B, kk, nn, ftrue)
+        X += load(SMatrix, A, mm, kk, inbounds=ftrue) * load(SMatrix, B, kk, nn, inbounds=ftrue)
     end
     store!(C, mm, nn, X, ftrue)
     return nothing
@@ -141,8 +142,8 @@ Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
 "Read a small subset of a StaticMatrix into a StaticMatrix of given type"
 @generated function load(::Type{T}, C::StaticMatrix{M,N},
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
-        nn::FixedUnitRange{Int,IN,FixedInteger{n}},
-        inbounds::FixedOrBool) where {T,M,N,IM,IN,m,n}
+        nn::FixedUnitRange{Int,IN,FixedInteger{n}};
+        inbounds::FixedOrBool=ffalse) where {T,M,N,IM,IN,m,n}
     a = Vector{Expr}()
     L = LinearIndices((M,N))
     for j=1:n
