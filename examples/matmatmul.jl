@@ -1,14 +1,16 @@
 # For beenchmarking, use: julia -O3
 
+# Note: I'd like to be able to do this with `view`s that result
+# in fixed-size subarrays, but at the moment, those are still allocating.
+# So passing ranges as separate arguments instead.
+
 module MatMatMulExample
 
 using FixedNumbers
 using StaticArrays
 using LinearAlgebra
 
-# Note: I'd like to be able to do this with `view`s that result
-# in fixed-size subarrays, but at the moment, those are still allocating.
-# So passing ranges as separate arguments instead.
+const ftrue = Fixed(true)
 
 "A struct that stores the block sizes used in matmatmul"
 struct BlockSizes{TM<:Integer,TN<:Integer,TK<:Integer}
@@ -27,7 +29,7 @@ as a `FixedOrBool` parameter. This works even when functions are not inlined,
 and makes it easier to eliminate bounds-checking code when using the @code_llvm
 macro.
 """
-@inline function mulboundscheck(
+@inline function checkmulbounds(
                 A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
                 mm::AbstractRange, nn::AbstractRange, kk::AbstractRange)
         checkbounds(C, mm, nn)
@@ -48,7 +50,7 @@ function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
     (1:M,1:K) == axes(A) && (1:K,1:N) == axes(B) && (1:M,1:N) == axes(C) || throw(dimerr)
     (C===A || C===B) && throw(aliaserr)
 
-    mymul!(C, A, B, Fixed(false), Fixed(true),
+    mymul!(C, A, B, Fixed(false), ftrue,
         M÷mnk.m, N÷mnk.n, K÷mnk.k,
         Fixed(M%mnk.m), Fixed(N%mnk.n), Fixed(K%mnk.k),
         mnk.m, mnk.n, mnk.k,
@@ -61,62 +63,60 @@ function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
                 rm::Integer, rn::Integer, rk::Integer,
                 m::Integer, n::Integer, k::Integer)
     if !inbounds
-        mulboundscheck(A, B, C, Base.OneTo(tm*m+rm), Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+        checkmulbounds(A, B, C, Base.OneTo(tm*m+rm), Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
     end
     for i=0:tm-1
         mm = i*m .+ FixedOneTo(m)
-        myrowsmul!(C, A, B, beta, Fixed(true), mm, tn, tk, rn, rk, n, k)
+        myrowsmul!(C, A, B, beta, ftrue, mm, tn, tk, rn, rk, n, k)
     end
     if rm>0
         mm = tm*m .+ FixedOneTo(rm)
-        myrowsmul!(C, A, B, beta, Fixed(true), mm, tn, tk, rn, rk, n, k)
+        myrowsmul!(C, A, B, beta, ftrue, mm, tn, tk, rn, rk, n, k)
     end
 end
 
 #C[mm,:] <- A[mm,:]*B + beta*C[mm,:]
 @inline function myrowsmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
         beta::Number, inbounds::FixedOrBool,
-        mm::AbstractVector{<:Integer}, tn::Integer, tk::Integer,
+        mm::AbstractUnitRange{<:Integer}, tn::Integer, tk::Integer,
         rn::Integer, rk::Integer, n::Integer, k::Integer)
     if !inbounds
-        mulboundscheck(inbounds, A, B, C, mm, Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+        checkmulbounds(inbounds, A, B, C, mm, Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
     end
     for j=0:tn-1
         nn = j*n .+ FixedOneTo(n)
-        @inbounds mysubmatmul!(C, A, B, mm, nn, tk, rk, k, beta)
+        mysubmatmul!(C, A, B, beta, ftrue, mm, nn, tk, rk, k)
     end
     if rn>0
         nn = tn*n .+ FixedOneTo(rn)
-        @inbounds mysubmatmul!(C, A, B, mm, nn, tk, rk, k, beta)
+        mysubmatmul!(C, A, B, beta, ftrue, mm, nn, tk, rk, k)
     end
 end
 
 # This is allocating unless k and rk are `FixedInteger`s
 # C[mm,nn] <- A[mm,:]*B[:,nn] + beta*C[mm,nn]
 @inline function mysubmatmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
-        mm::AbstractVector{<:Integer}, nn::AbstractVector{<:Integer},
-        tk::Integer, rk::Integer, k::Integer, beta::Number)
-    # @boundscheck begin
-    #     kk = Base.OneTo(tk*k+rk)
-    #     checkbounds(C, mm, nn)
-    #     checkbounds(A, mm, kk)
-    #     checkbounds(B, kk, nn)
-    # end
-    X = beta * @inbounds load(SMatrix, C, mm, nn)
+        beta::Number, inbounds::FixedOrBool,
+        mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer},
+        tk::Integer, rk::Integer, k::Integer)
+    if !inbounds
+        checkmulbounds(inbounds, A, B, C, mm, nn, Base.OneTo(tk*k+rk))
+    end
+    X = beta * load(SMatrix, C, mm, nn, ftrue)
     for h=0:tk-1
         kk = h*k .+ FixedOneTo(k)
-        X += @inbounds load(SMatrix, A, mm, kk) * @inbounds load(SMatrix, B, kk, nn)
+        X += load(SMatrix, A, mm, kk, ftrue) * load(SMatrix, B, kk, nn, ftrue)
     end
     if rk>0
         kk = tk*k .+ FixedOneTo(rk)
-        X += @inbounds load(SMatrix, A, mm, kk) * @inbounds load(SMatrix, B, kk, nn)
+        X += load(SMatrix, A, mm, kk, ftrue) * load(SMatrix, B, kk, nn, ftrue)
     end
-    @inbounds store!(C, mm, nn, X)
+    store!(C, mm, nn, X, ftrue)
     return nothing
 end
 
 # @inline function mysubmatmul!b(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
-#         mm::AbstractVector{<:Integer}, nn::AbstractVector{<:Integer},
+#         mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer},
 #         tk::Integer, rk::Integer, k::Integer, beta::Number, bs::BlockSizes...)
 #     kk = FixedOneTo(k)
 #     submatmul!(C, A, B, mm, nn, kk, beta, bs...)
@@ -137,7 +137,8 @@ Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
 "Read a small subset of a StaticMatrix into a StaticMatrix of given type"
 @generated function load(::Type{T}, C::StaticMatrix{M,N},
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
-        nn::FixedUnitRange{Int,IN,FixedInteger{n}}) where {T,M,N,IM,IN,m,n}
+        nn::FixedUnitRange{Int,IN,FixedInteger{n}},
+        inbounds::FixedOrBool) where {T,M,N,IM,IN,m,n}
     a = Vector{Expr}()
     L = LinearIndices((M,N))
     for j=1:n
@@ -147,7 +148,9 @@ Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
     end
     return quote
         Base.@_inline_meta
-        @boundscheck checkbounds(C, mm, nn)
+        if !inbounds
+             checkbounds(C, mm, nn)
+        end
         k = M*zeroth(nn) + zeroth(mm)
         @inbounds T{m,n}($(Expr(:tuple, a...)))
     end
@@ -159,7 +162,7 @@ end
 @generated function store!(C::StaticMatrix{M,N},
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
-        X::StaticMatrix{m,n}) where {M,N,IM,IN,m,n}
+        X::StaticMatrix{m,n}, inbounds::FixedOrBool) where {M,N,IM,IN,m,n}
     a = Vector{Expr}()
     y = Vector{Expr}()
     L = LinearIndices((M,N))
@@ -172,7 +175,9 @@ end
     end
     return quote
         Base.@_inline_meta
-        @boundscheck checkbounds(C, mm, nn)
+        if !inbounds
+             checkbounds(C, mm, nn)
+        end
         k = M*zeroth(nn) + zeroth(mm)
         @inbounds $(Expr(:tuple, a...)) = $(Expr(:tuple, y...))
         nothing
