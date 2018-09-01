@@ -93,7 +93,11 @@ function Base.convert(T::Type{<:Fixed{X}}, y::Number) where {X}
     return T()
 end
 
-@inline Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
+Base.convert(::Type{T}, ::Fixed{X}) where {T<:Number,X} = convert(T, X)
+
+# `oftype` is allowed to return a different Fixed.
+# Otherwise, it'd give InexactError all the time.
+Base.oftype(::Fixed{X}, y) where {X} = Fixed(oftype(X, y))
 
 # TODO: Constructors to avoid Fixed{Fixed}
 
