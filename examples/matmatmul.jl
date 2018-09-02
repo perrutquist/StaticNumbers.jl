@@ -20,11 +20,12 @@ using LinearAlgebra
 # Change this to `false` to enable bounds checking in every function.
 const ftrue = Fixed(true)
 
-"A struct that stores the block sizes used in matmatmul"
-struct BlockSizes{TM<:Integer,TN<:Integer,TK<:Integer}
-    m::TM
-    n::TN
-    k::TK
+"A struct that stores the block size used in matmatmul"
+struct BlockSize{M<:Integer,N<:Integer,K<:Integer,CP<:FixedOrBool}
+    m::M
+    n::N
+    k::K
+    cp::CP
 end
 
 const dimerr = DimensionMismatch("Incompatible matrix axes")
@@ -48,18 +49,42 @@ If `inbounds` is `true` then no check is performed that matrix sizes match
 block specifications. This can lead to memory corruption.
 """
 function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
-                mnk::BlockSizes, mnks::BlockSizes...)
+                beta::Number, inbounds::FixedOrBool,
+                mnk::BlockSize, mnks::BlockSize...)
     (M,N) = size(C)
     K = size(A,2)
-    (1:M,1:K) == axes(A) && (1:K,1:N) == axes(B) && (1:M,1:N) == axes(C) || throw(dimerr)
-    (C===A || C===B) && throw(aliaserr)
+    if !inbounds
+        (1:M,1:K) == axes(A) && (1:K,1:N) == axes(B) && (1:M,1:N) == axes(C) || throw(dimerr)
+        (C===A || C===B) && throw(aliaserr) # Technically not a boundscheck, but...
+    end
 
-    mymul!(C, A, B, Fixed(false), ftrue,
-        M÷mnk.m, N÷mnk.n, K÷mnk.k,
-        Fixed(M%mnk.m), Fixed(N%mnk.n), Fixed(K%mnk.k),
-        mnk.m, mnk.n, mnk.k,
-        mnks...)
+    (tm, rm) = divrem(M, mnk.m)
+    (tn, rn) = divrem(N, mnk.n)
+    (tk, rk) = divrem(K, mnk.k)
+
+    if mnk.cp == true
+        A1 = A isa StaticMatrix ? A : @inbounds MMatrix{M,K}(A)
+        B1 = B isa StaticMatrix ? B : @inbounds MMatrix{K,N}(B)
+        C1 = C isa StaticMatrix ? C : @inbounds MMatrix{M,N}(C)
+        mymul!(C1, A1, B1, beta, ftrue,
+            tm, tn, tk,
+            Fixed(rm), Fixed(rn), Fixed(rk),
+            mnk.m, mnk.n, mnk.k,
+            mnks...)
+        if !(C isa StaticMatrix)
+            C .= C1
+        end
+    else
+        mymul!(C, A, B, beta, ftrue,
+            tm, tn, tk,
+            Fixed(rm), Fixed(rn), Fixed(rk),
+            mnk.m, mnk.n, mnk.k,
+            mnks...)
+    end
 end
+
+# C <- A*B
+mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, mnks::BlockSize...) = mymul!(C, A, B, Fixed(false), Fixed(false), mnks...)
 
 function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
                 beta::Number, inbounds::FixedOrBool,
@@ -71,16 +96,16 @@ function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
     end
     for i=0:tm-1
         mm = i*m .+ FixedOneTo(m)
-        myrowsmul!(C, A, B, beta, ftrue, mm, tn, tk, rn, rk, n, k)
+        mymul!(C, A, B, beta, ftrue, mm, tn, tk, rn, rk, n, k)
     end
     if rm>0
         mm = tm*m .+ FixedOneTo(rm)
-        myrowsmul!(C, A, B, beta, ftrue, mm, tn, tk, rn, rk, n, k)
+        mymul!(C, A, B, beta, ftrue, mm, tn, tk, rn, rk, n, k)
     end
 end
 
 #C[mm,:] <- A[mm,:]*B + beta*C[mm,:]
-@inline function myrowsmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+@inline function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
         beta::Number, inbounds::FixedOrBool,
         mm::AbstractUnitRange{<:Integer}, tn::Integer, tk::Integer,
         rn::Integer, rk::Integer, n::Integer, k::Integer)
@@ -89,17 +114,16 @@ end
     end
     for j=0:tn-1
         nn = j*n .+ FixedOneTo(n)
-        mysubmatmul!(C, A, B, beta, ftrue, mm, nn, tk, rk, k)
+        mymul!(C, A, B, beta, ftrue, mm, nn, tk, rk, k)
     end
     if rn>0
         nn = tn*n .+ FixedOneTo(rn)
-        mysubmatmul!(C, A, B, beta, ftrue, mm, nn, tk, rk, k)
+        mymul!(C, A, B, beta, ftrue, mm, nn, tk, rk, k)
     end
 end
 
-# This is allocating unless k and rk are `FixedInteger`s
 # C[mm,nn] <- A[mm,:]*B[:,nn] + beta*C[mm,nn]
-@inline function mysubmatmul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+@inline function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
         beta::Number, inbounds::FixedOrBool,
         mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer},
         tk::Integer, rk::Integer, k::Integer)
@@ -119,22 +143,24 @@ end
     return nothing
 end
 
-# @inline function mysubmatmul!b(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
+# @inline function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
 #         beta::Number, inbounds::FixedOrBool,
 #         mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer},
-#         tk::Integer, rk::Integer, k::Integer, beta::Number, bs::BlockSizes...)
+#         tk::Integer, rk::Integer, k::Integer, beta::Number, bs::BlockSize...)
 #     if !inbounds
 #         checkmulbounds(inbounds, A, B, C, mm, nn, Base.OneTo(tk*k+rk))
 #     end
 #     kk = FixedOneTo(k)
-#     submatmul!(C, A, B, mm, nn, kk, beta, bs...)
+#     if tk>0
+#         submatmul!(C, A, B, beta, ftrue, mm, nn, kk, bs...)
+#     end
 #     for h=1:tk-1
 #         kk = h*k .+ FixedOneTo(k)
-#         submatmul!(C, A, B, mm, nn, kk, Fixed(1), bs...)
+#         submatmul!(C, A, B, Fixed(1), ftrue, mm, nn, kk, bs...)
 #     end
 #     if rk>0
 #         kk = tk*k .+ FixedOneTo(rk)
-#         submatmul!(C, A, B, mm, nn, kk, Fixed(1), bs...)
+#         submatmul!(C, A, B, Fixed(1), ftrue, mm, nn, kk, bs...)
 #     end
 #     return nothing
 # end
@@ -142,7 +168,42 @@ end
 # Fast, zero-size LinearIndices for Static matrices if we define:
 Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
 
-"Read a small subset of a StaticMatrix into a StaticMatrix of given type"
+"Read a subset of a matrix into a StaticMatrix"
+@inline function load!(Y::StaticMatrix{m,n}, C::AbstractMatrix,
+         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
+         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
+         inbounds::FixedOrBool) where {IM,IN,m,n}
+     if !inbounds
+          checkbounds(C, mm, nn)
+     end
+     for j in eachindex nn
+         for i in eachindex mm
+             @inbounds Y[i,j] = X[mm[i],nn[j]]
+         end
+     end
+end
+
+# @generated function load(::Type{T}, C::AbstractMatrix,
+#         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
+#         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
+#         inbounds::FixedOrBool) where {T,IM,IN,m,n}
+#     a = Vector{Expr}()
+#     for j=1:n
+#         for i=1:m
+#             push!(a, :( C[k+L[$i,$j]] ))
+#         end
+#     end
+#     return quote
+#         Base.@_inline_meta
+#         if !inbounds
+#              checkbounds(C, mm, nn)
+#         end
+#         L = LinearIndices(C)
+#         k = L[first(mm), first(nn)]-1
+#         @inbounds T{m,n}($(Expr(:tuple, a...)))
+#     end
+# end
+
 @generated function load(::Type{T}, C::StaticMatrix{M,N},
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
@@ -167,6 +228,46 @@ end
 # then transpose.
 
 "Store a small StaticMatrix into a subset of a StaticMatrix"
+@inline function store!(C::AbstractMatrix, Y::StaticMatrix{m,n},
+         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
+         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
+         inbounds::FixedOrBool) where {IM,IN,m,n}
+     if !inbounds
+          checkbounds(C, mm, nn)
+     end
+     for j in eachindex nn
+         for i in eachindex mm
+             @inbounds Y[i,j] = X[mm[i],nn[j]]
+         end
+     end
+end
+
+# @generated function store!(C::AbstractMatrix,
+#         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
+#         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
+#         X::StaticMatrix{m,n}, inbounds::FixedOrBool) where {IM,IN,m,n}
+#     a = Vector{Expr}()
+#     y = Vector{Expr}()
+#     Ly = LinearIndices((m,n))
+#     for j=1:n
+#         for i=1:m
+#             push!(a, :( C[k+L[$i,$j]] ))
+#             push!(y, :( X[$(Ly[i,j])] ))
+#         end
+#     end
+#     return quote
+#         Base.@_inline_meta
+#         if !inbounds
+#              checkbounds(C, mm, nn)
+#         end
+#         L = LinearIndices(C)
+#         k = L[first(mm), first(nn)]-1
+#         @inbounds $(Expr(:tuple, a...)) = $(Expr(:tuple, y...))
+#         nothing
+#     end
+# end
+
+# Faster method, when C is a fixed size.
 @generated function store!(C::StaticMatrix{M,N},
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
@@ -192,6 +293,18 @@ end
     end
 end
 
+# MMatrix from Matrix
+# Actually, not faster than existing?
+@inline function MMatrix{M,N,T}(C::Matrix{T}) where {M,N,T}
+    @boundscheck length(C) == M*N
+    X = MMatrix{M,N,T}(undef)
+    for i=FixedOneTo(M*N)
+        @inbounds X[i] = C[i]
+    end
+    return X
+end
+@inline MMatrix{M,N}(C::Matrix{T}) where {M,N,T} = MMatrix{M,N,T}(C)
+
 # TODO Transpose and Adjoint
 #load(T::Type, A::Transpose, mm::FixedUnitRange, nn::FixedUnitRange) =
 #   transpose(load(T, parent(A), nn, mm))
@@ -210,18 +323,24 @@ m=17
 n=18
 k=19
 
-A = MMatrix{m,k}(randn(m,k))
-B = MMatrix{k,n}(randn(k,n))
-C = MMatrix{m,n}(zeros(m,n))
+A = randn(m,k)
+B = randn(k,n)
+C = zeros(m,n)
+#A = randn(MMatrix{m,k})
+#B = randn(MMatrix{k,n})
+#C = zeros(MMatrix{m,n})
 
 MA = MMatrix{16,16}(randn(16,16))
 MB = MMatrix{16,16}(randn(16,16))
 MC = MMatrix{16,16}(zeros(16,16))
 
-MatMatMulExample.mymul!(C, A, B, MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(4)))
+MatMatMulExample.mymul!(C, A, B,
+    MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(4), Fixed(true)))
 
 println("Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
 
-println(@benchmark MatMatMulExample.mymul!($C, $A, $B, $(MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(2)))))
+display(@benchmark MatMatMulExample.mymul!($C, $A, $B,
+    $(MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2), Fixed(true)))))
 
-println(@benchmark MatMatMulExample.mymul!($MC, $MA, $MB, $(MatMatMulExample.BlockSizes(Fixed(4), Fixed(4), Fixed(2)))))
+display(@benchmark MatMatMulExample.mymul!($MC, $MA, $MB,
+    $(MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2), Fixed(true)))))
