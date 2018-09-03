@@ -69,7 +69,7 @@ Base.@propagate_inbounds function MulArgs(A,B,C)
     (m,n) = size(C)
     k = size(A,2)
     # MulArgs(A,B,C,Fixed(m),Fixed(n),Fixed(k)) # Compiles for every size !
-    MulArgs(A,B,C,m,n,k) # Much slower !
+    MulArgs(A,B,C,m,n,k) # slower.
     # MulArgs(A,B,C,FixedModInt(m,8),FixedModInt(n,8),FixedModInt(k,8)) # does not seem to help
 end
 function MulArgs(A::StaticMatrix{m,k},B::StaticMatrix{k,n},C::StaticMatrix{m,n}) where {m,n,k}
@@ -110,7 +110,8 @@ function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
 end
 
 #const u4 = (0,1,2,3)
-const u4 = Fixed.((0,1,2,3))
+#const u4 = Fixed.((0,1,2,3))
+const u4 = FixedUnitRange(Fixed(-1),Fixed(4))
 #const u4 = Fixed.((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15))
 
 # Note: This is not typstable unless sizes of A, B, C are fixed.
@@ -123,7 +124,11 @@ const u4 = Fixed.((0,1,2,3))
 
     mymul!(ABC, beta, ftrue,
         tm, tn, tk,
-        tryfixed(rm, u4...), tryfixed(rn, u4...), tryfixed(rk, u4...),
+        tryfixed(rm, u4), tryfixed(rn, u4), tryfixed(rk, u4),
+#        tryfixed(rm, u4...), tryfixed(rn, u4...), tryfixed(rk, u4...),
+#        Fixed(rm), Fixed(rn), Fixed(rk),
+#        Fixed(rm)::FixedInteger, Fixed(rn)::FixedInteger, Fixed(rk)::FixedInteger,
+#        rm, rn, rk,
         mnk.m, mnk.n, mnk.k,
         mnks...)
 end
@@ -381,5 +386,10 @@ MatMatMulExample.mymul!(ABC, blk)
 println("Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
 
 display(@benchmark MatMatMulExample.mymul!($ABC, $blk) samples=10 evals=1000)
+println()
 
 display(@benchmark MatMatMulExample.mymul!($MABC, $blk) samples=10 evals=1000)
+println()
+
+display(@benchmark mul!($C, $A, $B) samples=10 evals=1000)
+println()

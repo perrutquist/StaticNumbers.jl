@@ -220,7 +220,8 @@ f4(x) = tryfixed(x, Fixed(3), Fixed(4))
 g4() = f4(4)
 @test Base.return_types(g4, ())[1] == FixedInteger{4}
 
-f5(x) = tryfixed(x, FixedOneTo(Fixed(3)))
+f5(x) = tryfixed(mod(x,4), FixedStepRange(Fixed(-1),Fixed(1),Fixed(4)))
+@show Base.return_types(f5, (Int,))
 g5() = f5(2)
 @show Base.return_types(g5, ())
 
