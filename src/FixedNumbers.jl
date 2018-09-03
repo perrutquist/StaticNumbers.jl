@@ -193,25 +193,67 @@ end
 
 """
 tryfixed(x, y1, y2, ...)
-Test if a number `x` is equal to any of the `Fixed` numbers `y1`, `y2`, ...,
-and in that case return the fixed number. Otherwise, or if
-`x` is already a `Fixed` number, it is also returned unchanged.
+x ⩢ y1 ⩢ y2 ...
+
+Test if a number `x` is equal to any of the numbers `y1`, `y2`, ..., and in that
+case return `Fixed(y)`. Otherwise, or if `x` is already a `Fixed` number, `x is
+returned unchanged.
+
+The inferred return type will typically be a small `Union`, which Julia
+can handle efficiently.
+
+tryfixed(x, r)
+Tests if an integer `x` is in the range `r`, and if so, returns a `Fixed`
+integer from the range. (Otherwise, `x` is returned unchanged.)
+
+The numbers `y1`, `y2`, ..., or the range `r` should be such that they can be
+computed at inference. I.e. they should be constructed using literals, `Fixed`
+numbers, and other constants that are deducible from types types. Otherwise
+`tryfixed` is not more efficient than `Fixed(x)`.
 
 This function can be used to call specialized methods for certain input values.
-For example, `f(x, tryfixed(y, Fixed(0)))` will call `f(x, y)` if `y` is nonzero, but
-`f(x, Fixed(0)) if y is zero. This is useful if it enables optimizations that
+For example, `f(x, y ⩢ 0)` will call `f(x, y)` if `y` is nonzero, but
+`f(x, Fixed(0))` if y is zero. This is useful if it enables optimizations that
 outweigh the cost of branching.
 """
-@inline tryfixed(x::Number) = x
-@inline tryfixed(x::Number, y::Fixed, ys::Fixed...) = x == y ? y : tryfixed(x, ys...)
-@inline tryfixed(x::Fixed, ys::Fixed...) = x # shortcut
-@inline tryfixed(x::Number, ys::Number...) = tryfixed(x, map(Fixed, ys)...) # This method might be removed soon.
-@inline tryfixed(x::Number, t::Tuple) = tryfixed(x, t...)
 @inline ⩢(x, y) = tryfixed(x,y)
-# TODO: Use a tree search for long, sorted lists.
+@inline tryfixed(x::Fixed, ys::Number...) = x
+@inline tryfixed(x::Fixed, y::Fixed) = x #disambig
+@inline tryfixed(x::Number) = x
+@inline tryfixed(x::Number, y::Fixed) = x==y ? y : x
+@inline tryfixed(x::Number, y::Number) = tryfixed(x, Fixed(y))
+@inline tryfixed(x::Number, y::Number, ys::Number...) = tryfixed(tryfixed(x, y), ys...)
+
+@inline tryfixed(x::Number, t::T) where {T<:Tuple} = tryfixed(x, Fixed.(t)...)
+
+@inline tryfixed(x::FixedInteger, r::OrdinalRange{<:Integer, <:Integer}) = x
+@inline tryfixed(x::Integer, r::OrdinalRange{<:Integer, <:Integer}) = x in r ? tofixed(x, r) : x
+
+"""
+tofixed(x, r)
+Returns a `Fixed` integer, equal to `x` from the range `r`. If no element in
+`r` is equal to `x`, then the behaviour of this function is undefined.
+"""
+@inline function tofixed(x::Integer, r::OrdinalRange{<:Integer, <:Integer})
+    if length(r) <= 1
+        Fixed(first(r))
+    else
+        mid = length(r)÷2
+        if step(r) > 0
+            x <= r[mid] ? tofixed(x, r[1:mid]) : tofixed(x, r[mid+1:end])
+        else
+            x >= r[mid] ? tofixed(x, r[1:mid]) : tofixed(x, r[mid+1:end])
+        end
+    end
+end
+
+@inline tofixed(x::Fixed, r) = x # shortcut
 
 include("macros.jl")
 
 include("FixedRanges.jl")
+
+#@inline tofixed(x::Integer, r::StepRange) = tofixed(x, FixedStepRange(Fixed(zeroth(r)), Fixed(step(r)), Fixed(lenght(r)))
+#@inline tofixed(x::Integer, r::UnitRange) = tofixed(x, FixedUnitRange(Fixed(zeroth(r)), Fixed(lenght(r)))
 
 end # module

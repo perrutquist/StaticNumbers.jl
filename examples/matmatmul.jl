@@ -109,7 +109,9 @@ function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
     mymul!(MulArgs(A,B,C), beta::Number, inbounds, mnk, mnks...)
 end
 
-const u4 = Fixed.((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16))
+#const u4 = (0,1,2,3)
+const u4 = Fixed.((0,1,2,3))
+#const u4 = Fixed.((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15))
 
 # Note: This is not typstable unless sizes of A, B, C are fixed.
 @inline function mymul!(ABC::MulArgs,
@@ -365,9 +367,9 @@ C = zeros(m,n)
 #B = randn(MMatrix{k,n})
 #C = zeros(MMatrix{m,n})
 
-MA = MMatrix{16,16}(randn(16,16))
-MB = MMatrix{16,16}(randn(16,16))
-MC = MMatrix{16,16}(zeros(16,16))
+MA = MMatrix{m,k}(A)
+MB = MMatrix{k,n}(B)
+MC = zeros(MMatrix{m,n})
 
 ABC = MatMatMulExample.MulArgs(A,B,C)
 MABC = MatMatMulExample.MulArgs(MA,MB,MC)

@@ -89,6 +89,7 @@ end
 @test tryfixed(2, Fixed(0), Fixed(1)) === 2
 
 @test tryfixed(0, 1) === 0
+@test tryfixed(Fixed(0), 1) === Fixed(0)
 @test tryfixed(1, 1) === Fixed(1)
 @test tryfixed(0, 0, 1) === Fixed(0)
 @test tryfixed(1, 0, 1) === Fixed(1)
@@ -99,6 +100,9 @@ end
 @test 2 ⩢ (0, 1, 2) === Fixed(2)
 @test 2 ⩢ 0 ⩢ 1 ⩢ 2 === Fixed(2)
 @test 2 ⩢ 0 ⩢ 1 === 2
+
+@test tryfixed(2, 1:3) == Fixed(2)
+@test tryfixed(4, 1:3) == 4
 
 #println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-) )))
 @fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-)
@@ -199,6 +203,26 @@ ur = FixedUnitRange(2, Fixed(3))
 # Test that type inferrence is working
 @test Base.return_types(*, (Int, typeof(r)))[1] === typeof(r)
 @test Base.return_types(*, (Int, typeof(ur)))[1] === typeof(r)
+
+f1(x) = tryfixed(x, Fixed(3))
+@test Base.return_types(f1, (Int64,))[1] == Union{FixedInteger{3}, Int64}
+
+f2(x) = tryfixed(x, 3)
+@test Base.return_types(f2, (Int64,))[1] == Union{FixedInteger{3}, Int64}
+
+f3(x) = tryfixed(x, 3, 4)
+@show Base.return_types(f3, (Int,))
+g3() = f3(4)
+@test Base.return_types(g3, ())[1] == FixedInteger{4}
+
+f4(x) = tryfixed(x, Fixed(3), Fixed(4))
+@show Base.return_types(f4, (Int,))
+g4() = f4(4)
+@test Base.return_types(g4, ())[1] == FixedInteger{4}
+
+f5(x) = tryfixed(x, FixedOneTo(Fixed(3)))
+g5() = f5(2)
+@show Base.return_types(g5, ())
 
 # Test array handling with fixed ranges
 A = rand(16,16)
