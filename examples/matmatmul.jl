@@ -23,26 +23,6 @@ const ftrue = Fixed(true)
 # Fast, zero-size LinearIndices for Static matrices if we define:
 # Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
 
-"A type of integer, which is stored as k*base + rest"
-struct ModInt{K<:Integer,B<:Integer,R<:Integer} <: Integer
-    k::K
-    base::B
-    rest::R
-end
-function ModInt(x,base)
-    (k,r) = divrem(x,base)
-    ModInt(k,base,r)
-end
-function FixedModInt(x,base)
-    (k,r) = divrem(x,base)
-    ModInt(k,Fixed(base),Fixed(r))
-end
-
-Base.convert(::Type{T}, x::ModInt) where {T<:Number} = convert(T,x.k)*convert(T,x.base)+convert(T,x.rest)
-Base.convert(::Type{T}, x::T) where {T<:ModInt} = x
-Base.promote_rule(::Type{T}, ::Type{M}) where {T<:Number, M<:ModInt} = T
-Base.promote_rule(::Type{FixedInteger{X}}, ::Type{ModInt{T,B,R}}) where {X, T<:Integer, B<:Integer, R<:Integer} = T
-
 "A struct that stores the block size used in matmatmul"
 struct BlockSize{M<:Integer,N<:Integer,K<:Integer}
     m::M
@@ -70,7 +50,6 @@ Base.@propagate_inbounds function MulArgs(A,B,C)
     k = size(A,2)
     # MulArgs(A,B,C,Fixed(m),Fixed(n),Fixed(k)) # Compiles for every size !
     MulArgs(A,B,C,m,n,k) # slower.
-    # MulArgs(A,B,C,FixedModInt(m,8),FixedModInt(n,8),FixedModInt(k,8)) # does not seem to help
 end
 function MulArgs(A::StaticMatrix{m,k},B::StaticMatrix{k,n},C::StaticMatrix{m,n}) where {m,n,k}
     @inbounds MulArgs(A,B,C,Fixed(m),Fixed(n),Fixed(k))
@@ -114,6 +93,8 @@ end
 const u4 = FixedUnitRange(Fixed(-1),Fixed(4))
 #const u4 = Fixed.((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15))
 
+const U4 = Union{FixedInteger{0},FixedInteger{1},FixedInteger{2},FixedInteger{3}}
+
 # Note: This is not typstable unless sizes of A, B, C are fixed.
 @inline function mymul!(ABC::MulArgs,
                 beta::Number, inbounds::FixedOrBool,
@@ -124,11 +105,13 @@ const u4 = FixedUnitRange(Fixed(-1),Fixed(4))
 
     mymul!(ABC, beta, ftrue,
         tm, tn, tk,
-        tryfixed(rm, u4), tryfixed(rn, u4), tryfixed(rk, u4),
+#        tryfixed(rm, u4), tryfixed(rn, u4), tryfixed(rk, u4),
 #        tryfixed(rm, u4...), tryfixed(rn, u4...), tryfixed(rk, u4...),
-#        Fixed(rm), Fixed(rn), Fixed(rk),
-#        Fixed(rm)::FixedInteger, Fixed(rn)::FixedInteger, Fixed(rk)::FixedInteger,
 #        rm, rn, rk,
+#        Fixed(rm), Fixed(rn), Fixed(rk),
+#        Fixed(rm)::U4, Fixed(rn)::U4, Fixed(rk)::U4,
+#        Fixed(rm)::FixedInteger, Fixed(rn)::FixedInteger, Fixed(rk)::FixedInteger,
+        fixedmod(ABC.m, mnk.m), fixedmod(ABC.n, mnk.n), fixedmod(ABC.k, mnk.k),
         mnk.m, mnk.n, mnk.k,
         mnks...)
 end
@@ -254,9 +237,6 @@ k=19
 A = randn(m,k)
 B = randn(k,n)
 C = zeros(m,n)
-#A = randn(MMatrix{m,k})
-#B = randn(MMatrix{k,n})
-#C = zeros(MMatrix{m,n})
 
 MA = MMatrix{m,k}(A)
 MB = MMatrix{k,n}(B)
@@ -271,11 +251,14 @@ MatMatMulExample.mymul!(ABC, blk)
 
 println("Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
 
-display(@benchmark MatMatMulExample.mymul!($ABC, $blk) samples=10 evals=1000)
+println("mul!, ", BLAS.vendor())
+display(@benchmark mul!($C, $A, $B) samples=10 evals=10000)
 println()
 
-display(@benchmark MatMatMulExample.mymul!($MABC, $blk) samples=10 evals=1000)
+println("mymul!, Matrix")
+display(@benchmark MatMatMulExample.mymul!($ABC, $blk) samples=10 evals=10000)
 println()
 
-display(@benchmark mul!($C, $A, $B) samples=10 evals=1000)
+println("mymul!, MMatrix")
+display(@benchmark MatMatMulExample.mymul!($MABC, $blk) samples=10 evals=10000)
 println()

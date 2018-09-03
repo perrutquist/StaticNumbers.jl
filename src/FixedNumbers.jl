@@ -1,7 +1,7 @@
 module FixedNumbers
 
 export Fixed, FixedInteger, FixedReal, FixedNumber, FixedOrInt, FixedOrBool,
-       @fixednumbers, tryfixed, offixedtype, ⩢
+       @fixednumbers, tryfixed, offixedtype, ⩢, fixedmod
 
 const FixedError = ErrorException("Illegal type parameter for Fixed.")
 
@@ -273,5 +273,8 @@ function tofixedexpr(z, s, l)
         :( $(s>0 ? :(<=) : :(>=))(x, $(z + s*mid)) ? $(tofixedexpr(z, s, mid)) : $(tofixedexpr(z+mid*s, s, l-mid)) )
     end
 end
+
+"Fixed(mod(x,y))"
+@inline fixedmod(x, y::FixedInteger) = tofixed(mod(x,y), FixedUnitRange(Fixed(-1), y))
 
 end # module
