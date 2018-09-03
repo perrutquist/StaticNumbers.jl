@@ -194,43 +194,6 @@ function mymul!(ABC::MulArgs,
     return nothing
 end
 
-# @inline function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
-#         beta::Number, inbounds::FixedOrBool,
-#         mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer},
-#         tk::Integer, rk::Integer, k::Integer, beta::Number, bs::BlockSize...)
-#     if !inbounds
-#         checkmulbounds(inbounds, A, B, C, mm, nn, Base.OneTo(tk*k+rk))
-#     end
-#     kk = FixedOneTo(k)
-#     if tk>0
-#         submatmul!(C, A, B, beta, ftrue, mm, nn, kk, bs...)
-#     end
-#     for h=1:tk-1
-#         kk = h*k .+ FixedOneTo(k)
-#         submatmul!(C, A, B, Fixed(1), ftrue, mm, nn, kk, bs...)
-#     end
-#     if rk>0
-#         kk = tk*k .+ FixedOneTo(rk)
-#         submatmul!(C, A, B, Fixed(1), ftrue, mm, nn, kk, bs...)
-#     end
-#     return nothing
-# end
-
-# "Read a subset of a matrix into a StaticMatrix"
-# @inline function load!(Y::StaticMatrix{m,n}, C::AbstractMatrix, N::Integer,
-#          mm::FixedUnitRange{Int,IM,FixedInteger{m}},
-#          nn::FixedUnitRange{Int,IN,FixedInteger{n}},
-#          inbounds::FixedOrBool) where {IM,IN,m,n}
-#      if !inbounds
-#           checkbounds(C, mm, nn)
-#      end
-#      for j in eachindex nn
-#          for i in eachindex mm
-#              @inbounds Y[i,j] = C[i+(j-1)*N]
-#          end
-#      end
-# end
-
 @generated function load(::Type{T}, C::AbstractMatrix, M::Integer,
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
@@ -251,42 +214,8 @@ end
     end
 end
 
-# @generated function load(::Type{T}, C::StaticMatrix{M,N}, ::FixedInteger{M},
-#         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
-#         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
-#         inbounds::FixedOrBool) where {T,M,N,IM,IN,m,n}
-#     a = Vector{Expr}()
-#     for j=1:n
-#         for i=1:m
-#             push!(a, :( C[k+$i+($j-1)*M] ))
-#         end
-#     end
-#     return quote
-#         Base.@_inline_meta
-#         if !inbounds
-#              checkbounds(C, mm, nn)
-#         end
-#         k = M*zeroth(nn) + zeroth(mm)
-#         @inbounds T{m,n}($(Expr(:tuple, a...)))
-#     end
-# end
 # # Note, reading into a transpose is slow. Probably best to read first,
 # then transpose.
-
-# "Store a small StaticMatrix into a subset of a StaticMatrix"
-# @inline function store!(C::AbstractMatrix, Y::StaticMatrix{m,n},
-#          mm::FixedUnitRange{Int,IM,FixedInteger{m}},
-#          nn::FixedUnitRange{Int,IN,FixedInteger{n}},
-#          inbounds::FixedOrBool) where {IM,IN,m,n}
-#      if !inbounds
-#           checkbounds(C, mm, nn)
-#      end
-#      for j in eachindex nn
-#          for i in eachindex mm
-#              @inbounds Y[i,j] = X[mm[i],nn[j]]
-#          end
-#      end
-# end
 
 @generated function store!(C::AbstractMatrix, M::Integer,
         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
@@ -309,50 +238,7 @@ end
     end
 end
 
-# # Faster method, when C is a fixed size.
-# @generated function store!(C::StaticMatrix{M,N}, ::FixedInteger{M},
-#         mm::FixedUnitRange{Int,IM,FixedInteger{m}},
-#         nn::FixedUnitRange{Int,IN,FixedInteger{n}},
-#         X::StaticMatrix{m,n}, inbounds::FixedOrBool) where {M,N,IM,IN,m,n}
-#     a = Vector{Expr}()
-#     y = Vector{Expr}()
-#     L = LinearIndices((M,N))
-#     Ly = LinearIndices((m,n))
-#     for j=1:n
-#         for i=1:m
-#             push!(a, :( C[k+$(L[i,j])] ))
-#             push!(y, :( X[$(Ly[i,j])] ))
-#         end
-#     end
-#     return quote
-#         Base.@_inline_meta
-#         if !inbounds
-#              checkbounds(C, mm, nn)
-#         end
-#         k = M*zeroth(nn) + zeroth(mm)
-#         @inbounds $(Expr(:tuple, a...)) = $(Expr(:tuple, y...))
-#         nothing
-#     end
-# end
-
-# MMatrix from Matrix
-# Actually, not faster than existing?
-# @inline function MMatrix{M,N,T}(C::Matrix{T}) where {M,N,T}
-#     @boundscheck length(C) == M*N
-#     X = MMatrix{M,N,T}(undef)
-#     for i=FixedOneTo(M*N)
-#         @inbounds X[i] = C[i]
-#     end
-#     return X
-# end
-# @inline MMatrix{M,N}(C::Matrix{T}) where {M,N,T} = MMatrix{M,N,T}(C)
-
 # TODO Transpose and Adjoint
-#load(T::Type, A::Transpose, mm::FixedUnitRange, nn::FixedUnitRange) =
-#   transpose(load(T, parent(A), nn, mm))
-#store!(A::Transpose, mm::FixedUnitRange, nn::FixedUnitRange, Y::StaticMatrix) =
-#   store!(T, parent(A), nn, mm, transpose(Y))
-
 
 end # module
 
