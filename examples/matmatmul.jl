@@ -121,7 +121,7 @@ const u4 = Fixed.((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16))
 
     mymul!(ABC, beta, ftrue,
         tm, tn, tk,
-        fix(rm, u4...), fix(rn, u4...), fix(rk, u4...),
+        tryfixed(rm, u4...), tryfixed(rn, u4...), tryfixed(rk, u4...),
         mnk.m, mnk.n, mnk.k,
         mnks...)
 end

@@ -1,7 +1,7 @@
 module FixedNumbers
 
 export Fixed, FixedInteger, FixedReal, FixedNumber, FixedOrInt, FixedOrBool,
-       @fixednumbers, fix, offixedtype
+       @fixednumbers, tryfixed, offixedtype, ⩢
 
 const FixedError = ErrorException("Illegal type parameter for Fixed.")
 
@@ -191,24 +191,23 @@ function Base.show(io::IO, x::Fixed{X}) where X
     print(io, ")")
 end
 
-# This function should maybe be renamed.
-# Possible names: fixto, fixif, maybefix
-# Also, it should have a unicode or-like binary operator alias.
 """
-fix(x, y1, y2, ...)
+tryfixed(x, y1, y2, ...)
 Test if a number `x` is equal to any of the `Fixed` numbers `y1`, `y2`, ...,
 and in that case return the fixed number. Otherwise, or if
 `x` is already a `Fixed` number, it is also returned unchanged.
 
 This function can be used to call specialized methods for certain input values.
-For example, `f(x, fix(y, Fixed(0)))` will call `f(x, y)` if `y` is nonzero, but
+For example, `f(x, tryfixed(y, Fixed(0)))` will call `f(x, y)` if `y` is nonzero, but
 `f(x, Fixed(0)) if y is zero. This is useful if it enables optimizations that
 outweigh the cost of branching.
 """
-@inline fix(x::Number) = x
-@inline fix(x::Number, y::Fixed, ys::Fixed...) = x == y ? y : fix(x, ys...)
-@inline fix(x::Fixed, ys::Fixed...) = x # shortcut
-@inline fix(x::Number, ys::Number...) = fix(x, map(Fixed, ys)...) # This method might be removed soon.
+@inline tryfixed(x::Number) = x
+@inline tryfixed(x::Number, y::Fixed, ys::Fixed...) = x == y ? y : tryfixed(x, ys...)
+@inline tryfixed(x::Fixed, ys::Fixed...) = x # shortcut
+@inline tryfixed(x::Number, ys::Number...) = tryfixed(x, map(Fixed, ys)...) # This method might be removed soon.
+@inline tryfixed(x::Number, t::Tuple) = tryfixed(x, t...)
+@inline ⩢(x, y) = tryfixed(x,y)
 # TODO: Use a tree search for long, sorted lists.
 
 include("macros.jl")
