@@ -20,8 +20,8 @@ using LinearAlgebra
 # Change this to `false` to enable bounds checking in every function.
 const ftrue = Fixed(true)
 
-# Fast, zero-size LinearIndices for Static matrices if we define:
-# Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
+#Fast, zero-size LinearIndices for Static matrices if we define:
+Base.axes(A::StaticArray) = map(FixedOneTo, size(A))
 
 "A struct that stores the block size used in matmatmul"
 struct BlockSize{M<:Integer,N<:Integer,K<:Integer}
@@ -31,7 +31,7 @@ struct BlockSize{M<:Integer,N<:Integer,K<:Integer}
 end
 
 "A struct that stores the matrices and sizes used in matmul"
-struct MulArgs{MA<:AbstractArray,MB<:AbstractArray,MC<:AbstractArray,M<:Integer,N<:Integer,K<:Integer}
+struct MulArgs{MA<:AbstractArray,MB<:AbstractArray,MC<:AbstractArray,M<:FixedOrInt,N<:FixedOrInt,K<:FixedOrInt}
     A::MA
     B::MB
     C::MC
@@ -88,92 +88,107 @@ function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
     mymul!(MulArgs(A,B,C), beta::Number, inbounds, mnk, mnks...)
 end
 
-#const u4 = (0,1,2,3)
-#const u4 = Fixed.((0,1,2,3))
-const u4 = FixedUnitRange(Fixed(-1),Fixed(4))
-#const u4 = Fixed.((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15))
-
-const U4 = Union{FixedInteger{0},FixedInteger{1},FixedInteger{2},FixedInteger{3}}
-
-# Note: This is not typstable unless sizes of A, B, C are fixed.
 @inline function mymul!(ABC::MulArgs,
                 beta::Number, inbounds::FixedOrBool,
                 mnk::BlockSize, mnks::BlockSize...)
-    (tm, rm) = divrem(ABC.m, mnk.m)
-    (tn, rn) = divrem(ABC.n, mnk.n)
-    (tk, rk) = divrem(ABC.k, mnk.k)
-
-    mymul!(ABC, beta, ftrue,
-        tm, tn, tk,
-#        tryfixed(rm, u4), tryfixed(rn, u4), tryfixed(rk, u4),
-#        tryfixed(rm, u4...), tryfixed(rn, u4...), tryfixed(rk, u4...),
-#        rm, rn, rk,
-#        Fixed(rm), Fixed(rn), Fixed(rk),
-#        Fixed(rm)::U4, Fixed(rn)::U4, Fixed(rk)::U4,
-#        Fixed(rm)::FixedInteger, Fixed(rn)::FixedInteger, Fixed(rk)::FixedInteger,
-        fixedmod(ABC.m, mnk.m), fixedmod(ABC.n, mnk.n), fixedmod(ABC.k, mnk.k),
-        mnk.m, mnk.n, mnk.k,
-        mnks...)
+    tm = ABC.m÷mnk.m
+    tn = ABC.n÷mnk.n
+    tk = ABC.k÷mnk.k
+    tofixed(mod(ABC.m, mnk.m), FixedUnitRange(Fixed(-1),mnk.m)) do rm
+        tofixed(mod(ABC.n, mnk.n), FixedUnitRange(Fixed(-1),mnk.n)) do rn
+            tofixed(mod(ABC.k, mnk.k), FixedUnitRange(Fixed(-1),mnk.k)) do rk
+                 mymul!(ABC, beta, ftrue,
+                     Base.OneTo(ABC.m), Base.OneTo(ABC.n), Base.OneTo(ABC.k),
+                     tm, tn, tk,
+                     rm, rn, rk,
+                     mnk.m, mnk.n, mnk.k,
+                     mnks...)
+            end
+        end
+    end
 end
 
 # C <- A*B
 mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, mnks::BlockSize...) = mymul!(C, A, B, Fixed(false), Fixed(false), mnks...)
 mymul!(ABC::MulArgs, mnks::BlockSize...) = mymul!(ABC, Fixed(false), Fixed(false), mnks...)
 
-function mymul!(ABC::MulArgs,
-                beta::Number, inbounds::FixedOrBool,
+function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
+                mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
                 tm::Integer, tn::Integer, tk::Integer,
                 rm::Integer, rn::Integer, rk::Integer,
-                m::Integer, n::Integer, k::Integer)
+                m::Integer, n::Integer, k::Integer,
+                mnks::BlockSize...)
     if !inbounds
-        checkmulbounds(ABC, Base.OneTo(tm*m+rm), Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+        checkmulbounds(ABC, mm, nn, kk)
     end
     for i=0:tm-1
-        mm = i*m .+ FixedOneTo(m)
-        mymul!(ABC, beta, ftrue, mm, tn, tk, rn, rk, n, k)
+        mm1 = @inbounds mm[i*m .+ FixedOneTo(m)]
+        mymul!(ABC, beta, ftrue, mm1, nn, kk, tn, tk, rn, rk, n, k, mnks...)
     end
     if rm>0
-        mm = tm*m .+ FixedOneTo(rm)
-        mymul!(ABC, beta, ftrue, mm, tn, tk, rn, rk, n, k)
+        mm1 = @inbounds mm[tm*m .+ FixedOneTo(rm)]
+        mymul!(ABC, beta, ftrue, mm1, nn, kk, tn, tk, rn, rk, n, k, mnks...)
     end
 end
 
 #C[mm,:] <- A[mm,:]*B + beta*C[mm,:]
-function mymul!(ABC::MulArgs,
-        beta::Number, inbounds::FixedOrBool,
-        mm::AbstractUnitRange{<:Integer}, tn::Integer, tk::Integer,
-        rn::Integer, rk::Integer, n::Integer, k::Integer)
+function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
+        mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
+        tn::Integer, tk::Integer,
+        rn::Integer, rk::Integer,
+        n::Integer, k::Integer,
+        mnks::BlockSize...)
     if !inbounds
-        checkmulbounds(ABC, mm, Base.OneTo(tn*n+rn), Base.OneTo(tk*k+rk))
+        checkmulbounds(ABC, mm, nn, kk)
     end
     for j=0:tn-1
-        nn = j*n .+ FixedOneTo(n)
-        mymul!(ABC, beta, ftrue, mm, nn, tk, rk, k)
+        nn1 = @inbounds nn[j*n .+ FixedOneTo(n)]
+        mymul!(ABC, beta, ftrue, mm, nn1, kk, tk, rk, k, mnks...)
     end
     if rn>0
-        nn = tn*n .+ FixedOneTo(rn)
-        mymul!(ABC, beta, ftrue, mm, nn, tk, rk, k)
+        nn1 = @inbounds nn[tn*n .+ FixedOneTo(rn)]
+        mymul!(ABC, beta, ftrue, mm, nn1, kk, tk, rk, k, mnks...)
     end
 end
 
 # C[mm,nn] <- A[mm,:]*B[:,nn] + beta*C[mm,nn]
-function mymul!(ABC::MulArgs,
-        beta::Number, inbounds::FixedOrBool,
-        mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer},
+function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
+        mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
         tk::Integer, rk::Integer, k::Integer)
     if !inbounds
-        checkmulbounds(ABC, mm, nn, Base.OneTo(tk*k+rk))
+        checkmulbounds(ABC, mm, nn, kk)
     end
     X = beta * load(SMatrix, ABC.C, ABC.m, mm, nn, ftrue)
     for h=0:tk-1
-        kk = h*k .+ FixedOneTo(k)
-        X += load(SMatrix, ABC.A, ABC.m, mm, kk, ftrue) * load(SMatrix, ABC.B, ABC.k, kk, nn, ftrue)
+        kk1 = @inbounds kk[h*k .+ FixedOneTo(k)]
+        X += load(SMatrix, ABC.A, ABC.m, mm, kk1, ftrue) * load(SMatrix, ABC.B, ABC.k, kk1, nn, ftrue)
     end
     if rk>0
-        kk = tk*k .+ FixedOneTo(rk)
-        X += load(SMatrix, ABC.A, ABC.m, mm, kk, ftrue) * load(SMatrix, ABC.B, ABC.k, kk, nn, ftrue)
+        kk1 = @inbounds kk[tk*k .+ FixedOneTo(rk)]
+        X += load(SMatrix, ABC.A, ABC.m, mm, kk1, ftrue) * load(SMatrix, ABC.B, ABC.k, kk1, nn, ftrue)
     end
     store!(ABC.C, ABC.m, mm, nn, X, ftrue)
+    return nothing
+end
+
+@inline function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
+        mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
+        tk::Integer, rk::Integer, k::Integer, mnks::BlockSize...)
+    if !inbounds
+        checkmulbounds(ABC, mm, nn, kk)
+    end
+    kk1 = @inbounds kk[FixedOneTo(k)]
+    if tk>0
+        mymul!(ABC, beta, ftrue, mm, nn, kk1, mnks...)
+    end
+    for h=1:tk-1
+        kk1 = @inbounds kk[h*k .+ FixedOneTo(k)]
+        mymul!(ABC, Fixed(1), ftrue, mm, nn, kk1, mnks...)
+    end
+    if rk>0
+        kk1 = @inbounds kk[tk*k .+ FixedOneTo(rk)]
+        mymul!(ABC, Fixed(1), ftrue, mm, nn, kk1, mnks...)
+    end
     return nothing
 end
 
@@ -229,36 +244,49 @@ using FixedNumbers
 using StaticArrays
 using LinearAlgebra
 using BenchmarkTools
+using Profile
 
 m=17
 n=18
 k=19
 
-A = randn(m,k)
-B = randn(k,n)
-C = zeros(m,n)
+const A = randn(m,k)
+const B = randn(k,n)
+const C = zeros(m,n)
 
-MA = MMatrix{m,k}(A)
-MB = MMatrix{k,n}(B)
-MC = zeros(MMatrix{m,n})
+const MA = MMatrix{m,k}(A)
+const MB = MMatrix{k,n}(B)
+const MC = zeros(MMatrix{m,n})
 
-ABC = MatMatMulExample.MulArgs(A,B,C)
-MABC = MatMatMulExample.MulArgs(MA,MB,MC)
+const ABC = MatMatMulExample.MulArgs(A,B,C)
+const MABC = MatMatMulExample.MulArgs(MA,MB,MC)
 
-blk = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
-
+const blk = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
 MatMatMulExample.mymul!(ABC, blk)
+
+# blk1 = MatMatMulExample.BlockSize(Fixed(8), Fixed(8), Fixed(4))
+# blk2 = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
+# MatMatMulExample.mymul!(ABC, blk1, blk2)
 
 println("Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
 
-println("mul!, ", BLAS.vendor())
+function profiletarget(ABC, blk, iters)
+    for i=1:iters
+        MatMatMulExample.mymul!(ABC, blk)
+    end
+end
+profiletarget(ABC, blk, 1)
+@profile profiletarget(ABC, blk, 1000000)
+Profile.print(C=true, mincount=5)
+
+println("mul!, BLAS=", BLAS.vendor())
 display(@benchmark mul!($C, $A, $B) samples=10 evals=10000)
 println()
 
 println("mymul!, Matrix")
-display(@benchmark MatMatMulExample.mymul!($ABC, $blk) samples=10 evals=10000)
+display(@benchmark MatMatMulExample.mymul!($ABC, $blk) samples=10 evals=100000)
 println()
 
 println("mymul!, MMatrix")
-display(@benchmark MatMatMulExample.mymul!($MABC, $blk) samples=10 evals=10000)
+display(@benchmark MatMatMulExample.mymul!($MABC, $blk) samples=10 evals=100000)
 println()

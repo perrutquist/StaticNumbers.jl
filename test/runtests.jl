@@ -104,6 +104,8 @@ end
 @test tryfixed(2, 1:3) == Fixed(2)
 @test tryfixed(4, 1:3) == 4
 
+@test tofixed(x->2x, 2, FixedUnitRange(Fixed(0),Fixed(4))) == 4
+
 #println(macroexpand(FixedNumbers, :(@fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-) )))
 @fixednumbers (0, 1) (Base.Math.sinpi, Base.Math.cospi) (Base.:+, Base.:-)
 @test sinpi(FixedInteger{1}()) === FixedInteger{0}()

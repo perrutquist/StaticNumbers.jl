@@ -1,7 +1,7 @@
 module FixedNumbers
 
 export Fixed, FixedInteger, FixedReal, FixedNumber, FixedOrInt, FixedOrBool,
-       @fixednumbers, tryfixed, offixedtype, ⩢, fixedmod
+       @fixednumbers, offixedtype
 
 const FixedError = ErrorException("Illegal type parameter for Fixed.")
 

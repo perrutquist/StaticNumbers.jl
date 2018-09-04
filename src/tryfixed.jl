@@ -1,3 +1,5 @@
+export tryfixed, tofixed, ⩢, fixedmod
+
 """
 tryfixed(x, y1, y2, ...)
 x ⩢ y1 ⩢ y2 ...
@@ -68,12 +70,19 @@ end
         $(tofixedexpr(Z, 1, L))
     end
 end
-function tofixedexpr(z, s, l)
+@generated function tofixed(f::F, x::Integer, r::FixedUnitRange{<:Integer, FixedInteger{Z}, FixedInteger{L}}) where {F, Z, L}
+    quote
+        Base.@_inline_meta
+        $(tofixedexpr(Z, 1, L, x->:(f($x))))
+    end
+end
+
+function tofixedexpr(z, s, l, blk=identity)
     if l<=1
-        :( FixedInteger{$(z+s)}() )
+        blk(:( FixedInteger{$(z+s)}() ))
     else
         mid = l÷2
-        :( $(s>0 ? :(<=) : :(>=))(x, $(z + s*mid)) ? $(tofixedexpr(z, s, mid)) : $(tofixedexpr(z+mid*s, s, l-mid)) )
+        :( $(s>0 ? :(<=) : :(>=))(x, $(z + s*mid)) ? $(tofixedexpr(z, s, mid, blk)) : $(tofixedexpr(z+mid*s, s, l-mid, blk)) )
     end
 end
 
