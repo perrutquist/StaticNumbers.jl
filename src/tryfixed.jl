@@ -1,4 +1,4 @@
-export tryfixed, tofixed, ⩢, fixedmod
+export tryfixed, tofixed, ⩢, fixedmod, @tofixed
 
 """
 tryfixed(x, y1, y2, ...)
@@ -77,13 +77,20 @@ end
     end
 end
 
-function tofixedexpr(z, s, l, blk=identity)
+function tofixedexpr(z, s, l, blk=identity, x=:x)
     if l<=1
         blk(:( FixedInteger{$(z+s)}() ))
     else
         mid = l÷2
-        :( $(s>0 ? :(<=) : :(>=))(x, $(z + s*mid)) ? $(tofixedexpr(z, s, mid, blk)) : $(tofixedexpr(z+mid*s, s, l-mid, blk)) )
+        :( $(s>0 ? :(<=) : :(>=))($x, $(z + s*mid)) ? $(tofixedexpr(z, s, mid, blk, x)) : $(tofixedexpr(z+mid*s, s, l-mid, blk, x)) )
     end
+end
+
+# TODO: Make cleaner macro interface!
+macro tofixed(x::Symbol, n::Int, blk)
+    xx = esc(x)
+    xblk = esc(blk)
+    FixedNumbers.tofixedexpr(0, 1, n, y->:( let $xx=$y; $xblk; end), xx)
 end
 
 "Fixed(mod(x,y))"

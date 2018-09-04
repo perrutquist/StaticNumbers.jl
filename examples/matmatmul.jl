@@ -94,9 +94,12 @@ end
     tm = ABC.m÷mnk.m
     tn = ABC.n÷mnk.n
     tk = ABC.k÷mnk.k
-    tofixed(mod(ABC.m, mnk.m), FixedUnitRange(Fixed(-1),mnk.m)) do rm
-        tofixed(mod(ABC.n, mnk.n), FixedUnitRange(Fixed(-1),mnk.n)) do rn
-            tofixed(mod(ABC.k, mnk.k), FixedUnitRange(Fixed(-1),mnk.k)) do rk
+    rm = ABC.m%mnk.m
+    rn = ABC.n%mnk.n
+    rk = ABC.k%mnk.k
+    @tofixed rm 4 begin
+        @tofixed rn 4 begin
+            @tofixed rk 2 begin
                  mymul!(ABC, beta, ftrue,
                      Base.OneTo(ABC.m), Base.OneTo(ABC.n), Base.OneTo(ABC.k),
                      tm, tn, tk,
@@ -106,6 +109,18 @@ end
             end
         end
     end
+    # tofixed(mod(ABC.m, mnk.m), FixedUnitRange(Fixed(-1),mnk.m)) do rm
+    #     tofixed(mod(ABC.n, mnk.n), FixedUnitRange(Fixed(-1),mnk.n)) do rn
+    #         tofixed(mod(ABC.k, mnk.k), FixedUnitRange(Fixed(-1),mnk.k)) do rk
+    #              mymul!(ABC, beta, ftrue,
+    #                  Base.OneTo(ABC.m), Base.OneTo(ABC.n), Base.OneTo(ABC.k),
+    #                  tm, tn, tk,
+    #                  rm, rn, rk,
+    #                  mnk.m, mnk.n, mnk.k,
+    #                  mnks...)
+    #         end
+    #     end
+    # end
 end
 
 # C <- A*B
@@ -290,3 +305,7 @@ println()
 println("mymul!, MMatrix")
 display(@benchmark MatMatMulExample.mymul!($MABC, $blk) samples=10 evals=100000)
 println()
+
+println("Gather malloc statistics...")
+Profile.clear_malloc_data()
+profiletarget(ABC, blk, 100000)
