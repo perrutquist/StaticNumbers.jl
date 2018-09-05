@@ -68,6 +68,7 @@ const rerr = DimensionMismatch("Subrange error.")
 Check that ranges are in bounds for `mymul`.
 """
 @inline function checkmulbounds(ABC::MulArgs, mm::AbstractRange, nn::AbstractRange, kk::AbstractRange)
+    #println(mm, ",\t ", nn, ",\t ", kk)
     1 <= first(mm) <= ABC.m &&
     1 <= last(mm) <= ABC.m &&
     1 <= first(nn) <= ABC.n &&
@@ -101,12 +102,12 @@ end
                 mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
                 mnk::BlockSize, mnks::BlockSize...)
 
-    fixedmod(ABC.m, mnk.m) do rm
-        fixedmod(ABC.n, mnk.n) do rn
-            fixedmod(ABC.k, mnk.k) do rk
+    fixedmod(length(mm), mnk.m) do rm
+        fixedmod(length(nn), mnk.n) do rn
+            fixedmod(length(kk), mnk.k) do rk
                  mymul!(ABC, beta, ftrue,
                      mm, nn, kk,
-                     ABC.m÷mnk.m, ABC.n÷mnk.n, ABC.k÷mnk.k,
+                     length(mm)÷mnk.m, length(nn)÷mnk.n, length(kk)÷mnk.k,
                      rm, rn, rk,
                      mnk.m, mnk.n, mnk.k,
                      mnks...)
@@ -272,11 +273,11 @@ const blk = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
 MatMatMulExample.mymul!(ABC, blk)
 println("1-block. Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
 
-# const blk1 = MatMatMulExample.BlockSize(Fixed(8), Fixed(8), Fixed(4))
-# const blk2 = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
-# MatMatMulExample.mymul!(ABC, blk1, blk2)
-# println("2-block. Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
-# println(C - A*B)
+const blk1 = MatMatMulExample.BlockSize(Fixed(8), Fixed(8), Fixed(4))
+const blk2 = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
+MatMatMulExample.mymul!(ABC, blk1, blk2)
+println("2-block. Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
+#println(C - A*B)
 
 function profiletarget(ABC, blk, iters)
     for i=1:iters
@@ -284,8 +285,9 @@ function profiletarget(ABC, blk, iters)
     end
 end
 profiletarget(ABC, blk, 1)
-@profile profiletarget(ABC, blk, 100000)
-Profile.print(C=true, mincount=5)
+
+# @profile profiletarget(ABC, blk, 100000)
+# Profile.print(C=true, mincount=5)
 
 println("mul!, BLAS=", BLAS.vendor())
 display(@benchmark mul!($C, $A, $B) samples=10 evals=1000)
