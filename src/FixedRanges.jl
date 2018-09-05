@@ -2,6 +2,10 @@ export FixedRange, FixedStepRange, FixedUnitRange, zeroth, FixedOneTo, fixedleng
 
 const FixedRangeError = ErrorException("Not a valid FixedRange.")
 
+# TODO: FixedRange should be renamed LengthRange. It is not Fixed per se.
+# FixedRange (StaticRange) should maybe be a typealias for the case where
+# the length is Fixed (Static)?
+
 """
 A `FixedStepRange` is the most general type of FixedRange.
 """

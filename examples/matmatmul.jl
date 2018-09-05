@@ -46,8 +46,8 @@ struct MulArgs{MA<:AbstractArray,MB<:AbstractArray,MC<:AbstractArray,M<:FixedOrI
     end
 end
 Base.@propagate_inbounds function MulArgs(A,B,C)
-    (m,n) = size(C)
-    k = size(A,2)
+    (m,n) = sz(C)
+    k = sz(A,2)
     # MulArgs(A,B,C,Fixed(m),Fixed(n),Fixed(k)) # Compiles for every size !
     MulArgs(A,B,C,m,n,k) # slower.
 end
@@ -88,46 +88,38 @@ function mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix,
     mymul!(MulArgs(A,B,C), beta::Number, inbounds, mnk, mnks...)
 end
 
-@inline function mymul!(ABC::MulArgs,
-                beta::Number, inbounds::FixedOrBool,
+@inline function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
                 mnk::BlockSize, mnks::BlockSize...)
-    tm = ABC.m÷mnk.m
-    tn = ABC.n÷mnk.n
-    tk = ABC.k÷mnk.k
-    rm = ABC.m%mnk.m
-    rn = ABC.n%mnk.n
-    rk = ABC.k%mnk.k
-    @tofixed rm 4 begin
-        @tofixed rn 4 begin
-            @tofixed rk 2 begin
+    mymul!(ABC, beta, inbounds,
+        Base.OneTo(ABC.m), Base.OneTo(ABC.n), Base.OneTo(ABC.k),
+        mnk, mnks...)
+end
+
+# TODO: All args to this function end up in an allocation for the
+# closure in the anonymous function. Can we avoid this?
+@inline function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
+                mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
+                mnk::BlockSize, mnks::BlockSize...)
+
+    fixedmod(ABC.m, mnk.m) do rm
+        fixedmod(ABC.n, mnk.n) do rn
+            fixedmod(ABC.k, mnk.k) do rk
                  mymul!(ABC, beta, ftrue,
-                     Base.OneTo(ABC.m), Base.OneTo(ABC.n), Base.OneTo(ABC.k),
-                     tm, tn, tk,
+                     mm, nn, kk,
+                     ABC.m÷mnk.m, ABC.n÷mnk.n, ABC.k÷mnk.k,
                      rm, rn, rk,
                      mnk.m, mnk.n, mnk.k,
                      mnks...)
             end
         end
     end
-    # tofixed(mod(ABC.m, mnk.m), FixedUnitRange(Fixed(-1),mnk.m)) do rm
-    #     tofixed(mod(ABC.n, mnk.n), FixedUnitRange(Fixed(-1),mnk.n)) do rn
-    #         tofixed(mod(ABC.k, mnk.k), FixedUnitRange(Fixed(-1),mnk.k)) do rk
-    #              mymul!(ABC, beta, ftrue,
-    #                  Base.OneTo(ABC.m), Base.OneTo(ABC.n), Base.OneTo(ABC.k),
-    #                  tm, tn, tk,
-    #                  rm, rn, rk,
-    #                  mnk.m, mnk.n, mnk.k,
-    #                  mnks...)
-    #         end
-    #     end
-    # end
 end
 
 # C <- A*B
 mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, mnks::BlockSize...) = mymul!(C, A, B, Fixed(false), Fixed(false), mnks...)
 mymul!(ABC::MulArgs, mnks::BlockSize...) = mymul!(ABC, Fixed(false), Fixed(false), mnks...)
 
-function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
+@inline function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
                 mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
                 tm::Integer, tn::Integer, tk::Integer,
                 rm::Integer, rn::Integer, rk::Integer,
@@ -278,12 +270,13 @@ const MABC = MatMatMulExample.MulArgs(MA,MB,MC)
 
 const blk = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
 MatMatMulExample.mymul!(ABC, blk)
+println("1-block. Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
 
-# blk1 = MatMatMulExample.BlockSize(Fixed(8), Fixed(8), Fixed(4))
-# blk2 = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
+# const blk1 = MatMatMulExample.BlockSize(Fixed(8), Fixed(8), Fixed(4))
+# const blk2 = MatMatMulExample.BlockSize(Fixed(4), Fixed(4), Fixed(2))
 # MatMatMulExample.mymul!(ABC, blk1, blk2)
-
-println("Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
+# println("2-block. Relative inaccuracy compared to BLAS = ", maximum(abs.(C .-  Float64.(big.(A)*big.(B)))) / maximum(abs.(A*B .-  Float64.(big.(A)*big.(B)))))
+# println(C - A*B)
 
 function profiletarget(ABC, blk, iters)
     for i=1:iters
@@ -291,21 +284,39 @@ function profiletarget(ABC, blk, iters)
     end
 end
 profiletarget(ABC, blk, 1)
-@profile profiletarget(ABC, blk, 1000000)
+@profile profiletarget(ABC, blk, 100000)
 Profile.print(C=true, mincount=5)
 
 println("mul!, BLAS=", BLAS.vendor())
-display(@benchmark mul!($C, $A, $B) samples=10 evals=10000)
+display(@benchmark mul!($C, $A, $B) samples=10 evals=1000)
+println()
+
+struct Wrapfloat <: Real
+    x::Float64
+end
+Base.:*(x::Wrapfloat, y::Wrapfloat) = Wrapfloat(x.x*y.x)
+Base.:+(x::Wrapfloat, y::Wrapfloat) = Wrapfloat(x.x+y.x)
+Base.zero(::Wrapfloat) = Wrapfloat(0.0)
+const WA = Wrapfloat.(A)
+const WB = Wrapfloat.(B)
+const WC = Wrapfloat.(C)
+const WABC = MatMatMulExample.MulArgs(WA,WB,WC)
+println("mul!, Wrapfloat")
+display(@benchmark mul!($WC, $WA, $WB) samples=10 evals=10000)
+println()
+
+println("mymul!, Wrapfloat")
+display(@benchmark MatMatMulExample.mymul!($WABC, $blk) samples=10 evals=10000)
 println()
 
 println("mymul!, Matrix")
-display(@benchmark MatMatMulExample.mymul!($ABC, $blk) samples=10 evals=100000)
+display(@benchmark MatMatMulExample.mymul!($ABC, $blk) samples=10 evals=10000)
 println()
 
 println("mymul!, MMatrix")
-display(@benchmark MatMatMulExample.mymul!($MABC, $blk) samples=10 evals=100000)
+display(@benchmark MatMatMulExample.mymul!($MABC, $blk) samples=10 evals=10000)
 println()
 
 println("Gather malloc statistics...")
 Profile.clear_malloc_data()
-profiletarget(ABC, blk, 100000)
+profiletarget(ABC, blk, 1)

@@ -1,4 +1,8 @@
-export tryfixed, tofixed, ⩢, fixedmod, @tofixed
+export tryfixed, tofixed, ⩢, fixedmod
+
+# TODO: tryconvert(T, x) should return convert(T, x) unless that would throw
+# an error. tryconvert(FixedInteger{0}, x) would be equivalent to the current
+# tryfixed(x, Fixed(0))
 
 """
 tryfixed(x, y1, y2, ...)
@@ -58,6 +62,16 @@ Returns a `Fixed` integer, equal to `x` from the range `r`. If no element in
 `r` is equal to `x`, then the behaviour of this function is undefined.
 """
 @inline tofixed(x::Fixed, r::OrdinalRange{<:Integer, <:Integer}) = x
+
+function tofixedexpr(z, s, l, blk=identity, x=:x)
+    if l<=1
+        blk(:( FixedInteger{$(z+s)}() ))
+    else
+        mid = l÷2
+        :( $(s>0 ? :(<=) : :(>=))($x, $(z + s*mid)) ? $(tofixedexpr(z, s, mid, blk, x)) : $(tofixedexpr(z+mid*s, s, l-mid, blk, x)) )
+    end
+end
+
 @generated function tofixed(x::Integer, r::FixedStepRange{<:Integer, FixedInteger{Z}, FixedInteger{S}, FixedInteger{L}}) where {Z, S, L}
     quote
         Base.@_inline_meta
@@ -70,28 +84,33 @@ end
         $(tofixedexpr(Z, 1, L))
     end
 end
-@generated function tofixed(f::F, x::Integer, r::FixedUnitRange{<:Integer, FixedInteger{Z}, FixedInteger{L}}) where {F, Z, L}
+
+# Allow do-constructs
+@generated function tofixed(f, x::Integer, r::FixedUnitRange{<:Integer, FixedInteger{Z}, FixedInteger{L}}) where {Z, L}
     quote
         Base.@_inline_meta
-        $(tofixedexpr(Z, 1, L, x->:(f($x))))
+        $(tofixedexpr(Z, 1, L, y->:(f($y))))
+    end
+end
+@generated function tofixed(f, x::Integer, r::FixedStepRange{<:Integer, FixedInteger{Z}, FixedInteger{S}, FixedInteger{L}}) where {Z, S, L}
+    quote
+        Base.@_inline_meta
+        $(tofixedexpr(Z, S, L, y->:(f($y))))
     end
 end
 
-function tofixedexpr(z, s, l, blk=identity, x=:x)
-    if l<=1
-        blk(:( FixedInteger{$(z+s)}() ))
-    else
-        mid = l÷2
-        :( $(s>0 ? :(<=) : :(>=))($x, $(z + s*mid)) ? $(tofixedexpr(z, s, mid, blk, x)) : $(tofixedexpr(z+mid*s, s, l-mid, blk, x)) )
-    end
-end
+# # TODO: Make cleaner macro interface!
+# macro tofixed(x::Symbol, n::Int, blk)
+#     xx = esc(x)
+#     xblk = esc(blk)
+#     FixedNumbers.tofixedexpr(0, 1, n, y->:( let $xx=$y; $xblk; end), xx)
+# end
 
-# TODO: Make cleaner macro interface!
-macro tofixed(x::Symbol, n::Int, blk)
-    xx = esc(x)
-    xblk = esc(blk)
-    FixedNumbers.tofixedexpr(0, 1, n, y->:( let $xx=$y; $xblk; end), xx)
-end
+"""
+`fixedmod(x,y)` returns `Fixed(mod(x,y))` if `y` is `Fixed`.
 
-"Fixed(mod(x,y))"
-@inline fixedmod(x, y::FixedInteger) = tofixed(mod(x,y), FixedUnitRange(Fixed(-1), y))
+If `y` is not `Fixed`, then `fixedmod(x,y)` is the same as `mod(x,y)`.
+"""
+fixedmod(x, y) = mod(x,y)
+@inline fixedmod(x::Integer, y::FixedInteger) = tofixed(mod(x,y), FixedUnitRange(Fixed(-1), y))
+@inline fixedmod(f, x::Integer, y::FixedInteger) = tofixed(f, mod(x,y), FixedUnitRange(Fixed(-1), y))

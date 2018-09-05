@@ -1,5 +1,8 @@
 module FixedNumbers
 
+# TODO: This module should be renamed StaticNumbers, and the word `fixed`
+# replaced by `static` everywhere.
+
 export Fixed, FixedInteger, FixedReal, FixedNumber, FixedOrInt, FixedOrBool,
        @fixednumbers, offixedtype
 
