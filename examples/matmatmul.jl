@@ -98,22 +98,16 @@ end
 
 # TODO: All args to this function end up in an allocation for the
 # closure in the anonymous function. Can we avoid this?
-@inline function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
+function mymul!(ABC::MulArgs, beta::Number, inbounds::FixedOrBool,
                 mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
                 mnk::BlockSize, mnks::BlockSize...)
 
-    fixedmod(length(mm), mnk.m) do rm
-        fixedmod(length(nn), mnk.n) do rn
-            fixedmod(length(kk), mnk.k) do rk
-                 mymul!(ABC, beta, ftrue,
-                     mm, nn, kk,
-                     length(mm)÷mnk.m, length(nn)÷mnk.n, length(kk)÷mnk.k,
-                     rm, rn, rk,
-                     mnk.m, mnk.n, mnk.k,
-                     mnks...)
-            end
-        end
-    end
+     mymul!(ABC, beta, ftrue,
+         mm, nn, kk,
+         length(mm)÷mnk.m, length(nn)÷mnk.n, length(kk)÷mnk.k,
+         fixedmod(length(mm), mnk.m), fixedmod(length(nn), mnk.n), fixedmod(length(kk), mnk.k),
+         mnk.m, mnk.n, mnk.k,
+         mnks...)
 end
 
 # C <- A*B
