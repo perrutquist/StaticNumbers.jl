@@ -85,19 +85,19 @@ end
     end
 end
 
-# Allow do-constructs
-@generated function tofixed(f, x::Integer, r::FixedUnitRange{<:Integer, FixedInteger{Z}, FixedInteger{L}}) where {Z, L}
-    quote
-        Base.@_inline_meta
-        $(tofixedexpr(Z, 1, L, y->:(f($y))))
-    end
-end
-@generated function tofixed(f, x::Integer, r::FixedStepRange{<:Integer, FixedInteger{Z}, FixedInteger{S}, FixedInteger{L}}) where {Z, S, L}
-    quote
-        Base.@_inline_meta
-        $(tofixedexpr(Z, S, L, y->:(f($y))))
-    end
-end
+# do-constructs are probably not worth the effort
+# @generated function tofixed(f, x::Integer, r::FixedUnitRange{<:Integer, FixedInteger{Z}, FixedInteger{L}}) where {Z, L}
+#     quote
+#         Base.@_inline_meta
+#         $(tofixedexpr(Z, 1, L, y->:(f($y))))
+#     end
+# end
+# @generated function tofixed(f, x::Integer, r::FixedStepRange{<:Integer, FixedInteger{Z}, FixedInteger{S}, FixedInteger{L}}) where {Z, S, L}
+#     quote
+#         Base.@_inline_meta
+#         $(tofixedexpr(Z, S, L, y->:(f($y))))
+#     end
+# end
 
 # # TODO: Make cleaner macro interface!
 # macro tofixed(x::Symbol, n::Int, blk)
@@ -112,6 +112,8 @@ end
 If `y` is not `Fixed`, then `fixedmod(x,y)` is the same as `mod(x,y)`.
 """
 fixedmod(x, y) = mod(x,y)
-fixedmod(f, x, y) = f(mod(x,y))
 @inline fixedmod(x::Integer, y::FixedInteger) = tofixed(mod(x,y), FixedUnitRange(Fixed(-1), y))
-@inline fixedmod(f, x::Integer, y::FixedInteger) = tofixed(f, mod(x,y), FixedUnitRange(Fixed(-1), y))
+
+# do-constructs. Remove?
+# fixedmod(f, x, y) = f(mod(x,y))
+# @inline fixedmod(f, x::Integer, y::FixedInteger) = tofixed(f, mod(x,y), FixedUnitRange(Fixed(-1), y))
