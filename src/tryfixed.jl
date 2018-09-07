@@ -112,5 +112,6 @@ end
 If `y` is not `Fixed`, then `fixedmod(x,y)` is the same as `mod(x,y)`.
 """
 fixedmod(x, y) = mod(x,y)
+fixedmod(f, x, y) = f(mod(x,y))
 @inline fixedmod(x::Integer, y::FixedInteger) = tofixed(mod(x,y), FixedUnitRange(Fixed(-1), y))
 @inline fixedmod(f, x::Integer, y::FixedInteger) = tofixed(f, mod(x,y), FixedUnitRange(Fixed(-1), y))
