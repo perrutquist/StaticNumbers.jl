@@ -24,11 +24,6 @@ NOTE: When the list of y-values is longer than one, y1, y2, ... must be `Fixed`
 numbers, or inferrence will not work. (In which case `tryfixed` is not more
 efficient than `Fixed(x)`.)
 """
-#The numbers `y1`, `y2`, ..., or the range `r` should be such that they can be
-#computed at inference. I.e. they should be constructed using literals, `Fixed`
-#numbers, and other constants that are deducible from types types.
-
-@inline ⩢(x, y) = tryfixed(x,y)
 @inline tryfixed(x::Fixed, ys::Number...) = x
 @inline tryfixed(x::Fixed, y::Fixed) = x #disambig
 @inline tryfixed(x::Number) = x
@@ -36,7 +31,13 @@ efficient than `Fixed(x)`.)
 @inline tryfixed(x::Number, y::Number) = tryfixed(x, Fixed(y))
 @inline tryfixed(x::Number, y::Number, ys::Number...) = tryfixed(tryfixed(x, y), ys...)
 
+@inline ⩢(x, y) = tryfixed(x,y)
+
 @inline tryfixed(x::Number, t::T) where {T<:Tuple} = tryfixed(x, Fixed.(t)...)
+
+#The numbers `y1`, `y2`, ..., or the range `r` should be such that they can be
+#computed at inference. I.e. they should be constructed using literals, `Fixed`
+#numbers, and other constants that are deducible from types types.
 
 """
 tryfixed(x, r)

@@ -91,14 +91,13 @@ end
 # TODO: All args to this function end up in an allocation. Can we avoid this?
 function mymul!(ABC::MulArgs, beta::Number,
                 mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
-                mnk::BlockSiz)
+                mnk::BlockSize)
 
      mymul!(ABC, beta,
          mm, nn, kk,
          length(mm)÷mnk.m, length(nn)÷mnk.n, length(kk)÷mnk.k,
          fixedmod(length(mm), mnk.m), fixedmod(length(nn), mnk.n), fixedmod(length(kk), mnk.k),
-         mnk.m, mnk.n, mnk.k,
-         mnks...)
+         mnk.m, mnk.n, mnk.k)
 end
 function mymul!(ABC::MulArgs, beta::Number,
                 mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
@@ -114,7 +113,8 @@ end
 
 # C <- A*B
 mymul!(C::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, mnks::BlockSize...) = mymul!(C, A, B, Fixed(false), mnks...)
-mymul!(ABC::MulArgs, mnks::BlockSize...) = mymul!(ABC, Fixed(false), mnks...)
+mymul!(ABC::MulArgs, mnk1::BlockSize) = mymul!(ABC, Fixed(false), mnk1)
+mymul!(ABC::MulArgs, mnk1::BlockSize, mnk2::BlockSize) = mymul!(ABC, Fixed(false), mnk1, mnk2)
 
 @inline function mymul!(ABC::MulArgs, beta::Number,
                 mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
