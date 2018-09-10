@@ -88,11 +88,10 @@ end
         mnk, mnks...)
 end
 
-# TODO: All args to this function end up in an allocation for the
-# closure in the anonymous function. Can we avoid this?
+# TODO: All args to this function end up in an allocation. Can we avoid this?
 function mymul!(ABC::MulArgs, beta::Number,
                 mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
-                mnk::BlockSize, mnks::BlockSize...)
+                mnk::BlockSiz)
 
      mymul!(ABC, beta,
          mm, nn, kk,
@@ -100,6 +99,17 @@ function mymul!(ABC::MulArgs, beta::Number,
          fixedmod(length(mm), mnk.m), fixedmod(length(nn), mnk.n), fixedmod(length(kk), mnk.k),
          mnk.m, mnk.n, mnk.k,
          mnks...)
+end
+function mymul!(ABC::MulArgs, beta::Number,
+                mm::AbstractUnitRange{<:Integer}, nn::AbstractUnitRange{<:Integer}, kk::AbstractUnitRange{<:Integer},
+                mnk::BlockSize, mnk2::BlockSize)
+
+     mymul!(ABC, beta,
+         mm, nn, kk,
+         length(mm)÷mnk.m, length(nn)÷mnk.n, length(kk)÷mnk.k,
+         fixedmod(length(mm), mnk.m), fixedmod(length(nn), mnk.n), fixedmod(length(kk), mnk.k),
+         mnk.m, mnk.n, mnk.k,
+         mnk2)
 end
 
 # C <- A*B
