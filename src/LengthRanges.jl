@@ -1,19 +1,22 @@
-export StaticRange, LengthRange, LengthUnitRange, zeroth, StaticOneTo, staticlength
+export LengthRange, LengthStepRange, LengthUnitRange, zeroth, StaticOneTo, staticlength
 
-const LengthRangeError = ErrorException("Not a valid LengthRange.")
+const LengthRangeError = ErrorException("Not a valid LengthStepRange.")
 
-# TODO: StaticRange should be renamed LengthRange. It is not Static per se.
-# StaticRange (StaticRange) should maybe be a typealias for the case where
+# TODO:
+# LengthRange (LengthRange) should maybe be a typealias for the case where
 # the length is Static (Static)?
 
 """
-A `LengthRange` is the most general type of StaticRange.
+A `LengthStepRange` is a range which is parameterized by its zeroth element,
+step and length (as oppsed to first, step, and last). The type of each
+of the parameters is part of the range type, and hence it is possible to
+use this type of range efficiently with `Static` parameters.
 """
-struct LengthRange{T,Z,S,L} <: OrdinalRange{T,S}
+struct LengthStepRange{T,Z,S,L} <: OrdinalRange{T,S}
     zeroth::Z
     step::S
     length::L
-    function LengthRange{T,Z,S,L}(z::Z, s::S, l::L) where {T, Z, S, L<:Integer}
+    function LengthStepRange{T,Z,S,L}(z::Z, s::S, l::L) where {T, Z, S, L<:Integer}
         if L<:StaticInteger
             l >= 0 || throw(unsafe_lengthRangeError)
         else
@@ -23,18 +26,18 @@ struct LengthRange{T,Z,S,L} <: OrdinalRange{T,S}
     end
 end
 
-LengthRange(z::Z, s::S, l::L) where {Z, S, L<:Integer} =
-    LengthRange{typeof(z+1*s), Z, S, L}(z, s, l)
-LengthRange{T}(z::Z, s::S, l::L) where {T, Z, S, L<:Integer} =
-    LengthRange{T, Z, S, L}(z, s, l)
-LengthRange{T,Z,S,L}() where {T, Z<:Static, S<:Static, L<:StaticInteger} =
-    LengthRange{T,Z,S,L}(Z(), S(), L())
+LengthStepRange(z::Z, s::S, l::L) where {Z, S, L<:Integer} =
+    LengthStepRange{typeof(z+1*s), Z, S, L}(z, s, l)
+LengthStepRange{T}(z::Z, s::S, l::L) where {T, Z, S, L<:Integer} =
+    LengthStepRange{T, Z, S, L}(z, s, l)
+LengthStepRange{T,Z,S,L}() where {T, Z<:Static, S<:Static, L<:StaticInteger} =
+    LengthStepRange{T,Z,S,L}(Z(), S(), L())
 
 """
-A `LengthUnitRange` is a type that is identical to `LengthRange` but
+A `LengthUnitRange` is a type that is identical to `LengthStepRange` but
 where the step is fixed to 1. It is a subtype of UnitRange.
 
-(It would be much simpler to just use `LengthRange` with a `Static` step
+(It would be much simpler to just use `LengthStepRange` with a `Static` step of 1
 but then methods that expect a `UnitRange` would not work.)
 """
 struct LengthUnitRange{T,Z,L} <: AbstractUnitRange{T}
@@ -59,9 +62,9 @@ LengthUnitRange{T,Z,L}() where {T, Z<:Static, L<:StaticInteger} =
     LengthUnitRange{T, Z, L}(Z(), L())
 
 """
-`StaticRange(zeroth, step, length)`
+`LengthRange(zeroth, step, length)`
 
-A StaticRange is a range which allows (but does not require) its `zeroth`, `step`
+A LengthRange is a range which allows (but does not require) its `zeroth`, `step`
 and/or `length` to be `Static` numbers.
 
 The `zeroth` element of the range is the element before the first.
@@ -71,52 +74,52 @@ a scalar, the zeroth element can remain `StaticInteger{0}`
 
 The `step` is the distance between successive elements of the range.
 
-The `length` must be an `Integer`. A `StaticRange` is parameterized by its
+The `length` must be an `Integer`. A `LengthRange` is parameterized by its
 length, rather than its last element. This makes it possible for the length
 to remain `Static` when an offset is added to the range.
 
-`StaticRange` is the union of `LengthRange` and `LengthUnitRange`
+`LengthRange` is the union of `LengthStepRange` and `LengthUnitRange`
 which are subtypes of `OrdinalRange` and `AbstractUnitRange` respectively.
 """
-const StaticRange{T,Z,S,L} = Union{LengthRange{T,Z,S,L}, LengthUnitRange{T,Z,L}}
+const LengthRange{T,Z,S,L} = Union{LengthStepRange{T,Z,S,L}, LengthUnitRange{T,Z,L}}
 
-# Currently having problems making the StaticRange constructors type-stable
-# Work-around: Use LengthRange or LengthUnitRange directly.
+# Currently having problems making the LengthRange constructors type-stable
+# Work-around: Use LengthStepRange or LengthUnitRange directly.
 
-#StaticRange(z::Z, s::S, l::L) where {Z, S, L<:Integer} =
-#    LengthRange{typeof(z+0*s), Z, S, L}(z, s, l)
-#StaticRange(z::Z, ::StaticInteger{1}, l::L) where {Z, L<:Integer} =
+#LengthRange(z::Z, s::S, l::L) where {Z, S, L<:Integer} =
+#    LengthStepRange{typeof(z+0*s), Z, S, L}(z, s, l)
+#LengthRange(z::Z, ::StaticInteger{1}, l::L) where {Z, L<:Integer} =
 #    LengthUnitRange{typeof(z+0), Z, L}(z, l)
 
-#StaticRange{T,Z,S,L}() where {T, Z<:Static, S<:Static, L<:StaticInteger} =
-#    LengthRange{T,Z,S,L}(Z(), S(), L())
-#StaticRange{T,Z,StaticInteger{1},L}() where {T, Z<:Static, L<:StaticInteger} =
+#LengthRange{T,Z,S,L}() where {T, Z<:Static, S<:Static, L<:StaticInteger} =
+#    LengthStepRange{T,Z,S,L}(Z(), S(), L())
+#LengthRange{T,Z,StaticInteger{1},L}() where {T, Z<:Static, L<:StaticInteger} =
 #    LengthUnitRange{T,Z,L}(Z(), L())
 
-StaticRange(r::StepRange) = LengthRange(r)
-LengthRange(r::StepRange) = LengthRange(first(r)-step(r), step(r), length(r))
-StaticRange(r::AbstractUnitRange) = LengthUnitRange(r)
+LengthRange(r::StepRange) = LengthStepRange(r)
+LengthStepRange(r::StepRange) = LengthStepRange(first(r)-step(r), step(r), length(r))
+LengthRange(r::AbstractUnitRange) = LengthUnitRange(r)
 LengthUnitRange(r::UnitRange) = LengthUnitRange(first(r)-step(r), length(r))
 
-@inline zeroth(r::StaticRange) = r.zeroth
+@inline zeroth(r::LengthRange) = r.zeroth
 @inline zeroth(r::AbstractRange) = first(r)-step(r)
 
-@inline Base.step(r::StaticRange) = r.step
-@inline Base.length(r::StaticRange) = r.length
-@inline Base.unsafe_length(r::StaticRange) = r.length
+@inline Base.step(r::LengthRange) = r.step
+@inline Base.length(r::LengthRange) = r.length
+@inline Base.unsafe_length(r::LengthRange) = r.length
 
 # `first` and `last` return elements of the array, so are of type T, never `Static`.
-@inline Base.first(r::StaticRange{T}) where {T} = convert(T, r.zeroth + r.step)
-@inline Base.last(r::StaticRange{T}) where {T} = convert(T, r.zeroth + r.step*r.length)
+@inline Base.first(r::LengthRange{T}) where {T} = convert(T, r.zeroth + r.step)
+@inline Base.last(r::LengthRange{T}) where {T} = convert(T, r.zeroth + r.step*r.length)
 
-@inline function Base.getindex(r::StaticRange{T}, i::Integer)::T where {T}
+@inline function Base.getindex(r::LengthRange{T}, i::Integer)::T where {T}
     @boundscheck checkbounds(r, i)
     convert(T, r.zeroth + i*r.step)
 end
 
-@inline function Base.getindex(r::StepRange{T}, s::StaticRange{<:Integer}) where {T}
+@inline function Base.getindex(r::StepRange{T}, s::LengthRange{<:Integer}) where {T}
     @boundscheck checkbounds(r, s)
-    LengthRange{T}(zeroth(r) + zeroth(s)*step(r), step(r)*step(s), length(s))
+    LengthStepRange{T}(zeroth(r) + zeroth(s)*step(r), step(r)*step(s), length(s))
 end
 
 @inline function Base.getindex(r::AbstractUnitRange{T}, s::LengthUnitRange{<:Integer}) where {T}
@@ -147,10 +150,10 @@ end
 """
 `staticlength(range)` converts to a range where the length is `Static`.
 """
-staticlength(r::StepRange) = LengthRange(zeroth(r), step(r), Static(length(r)))
+staticlength(r::StepRange) = LengthStepRange(zeroth(r), step(r), Static(length(r)))
 staticlength(r::UnitRange) = LengthUnitRange(zeroth(r), Static(length(r)))
 
-function Base.show(io::IO, r::StaticRange{<:Integer, <:Integer, <:Integer, <:StaticInteger})
+function Base.show(io::IO, r::LengthRange{<:Integer, <:Integer, <:Integer, <:StaticInteger})
     print(io, "staticlength(", first(r), ":")
     step(r) == 1 || print(io, step(r), ":")
     print(io, last(r), ")")
@@ -158,24 +161,24 @@ end
 
 import Base.Broadcast: broadcasted, DefaultArrayStyle
 
-broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Number, r::LengthRange) = LengthRange(a+r.zeroth, r.step, r.length)
-broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthRange, a::Number) = LengthRange(a+r.zeroth, r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Number, r::LengthStepRange) = LengthStepRange(a+r.zeroth, r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthStepRange, a::Number) = LengthStepRange(a+r.zeroth, r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Real, r::LengthUnitRange) = LengthUnitRange(a+r.zeroth, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthUnitRange, a::Real) = LengthUnitRange(a+r.zeroth, r.length)
 
-Base.:-(r::LengthRange) = LengthRange(-r.zeroth, -r.step, r.length)
-Base.:-(r::LengthRange{<:Any,<:Integer,StaticInteger{-1}}) = LengthUnitRange(-r.zeroth, r.length)
-Base.:-(r::LengthUnitRange) = LengthRange(-r.zeroth, Static(-1), r.length)
-broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::StaticRange) = -r
-broadcasted(::DefaultArrayStyle{1}, ::typeof(-), a::Number, r::StaticRange) = LengthRange(a-r.zeroth, -r.step, r.length)
-broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthRange, a::Number) = LengthRange(r.zeroth-a, r.step, r.length)
+Base.:-(r::LengthStepRange) = LengthStepRange(-r.zeroth, -r.step, r.length)
+Base.:-(r::LengthStepRange{<:Any,<:Integer,StaticInteger{-1}}) = LengthUnitRange(-r.zeroth, r.length)
+Base.:-(r::LengthUnitRange) = LengthStepRange(-r.zeroth, Static(-1), r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthRange) = -r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(-), a::Number, r::LengthRange) = LengthStepRange(a-r.zeroth, -r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthStepRange, a::Number) = LengthStepRange(r.zeroth-a, r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthUnitRange, a::Real) = LengthUnitRange(r.zeroth-a, r.length)
 
-Base.:*(a::Number, r::StaticRange) = LengthRange(a*r.zeroth, a*r.step, r.length)
-Base.:*(a::Number, r::StaticRange{<:Any, StaticInteger{0}}) = LengthRange(Static(0), a*r.step, r.length)
-Base.:*(r::StaticRange, a::Number) = a*r
-broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::Number,r::StaticRange) = a*r
-broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::StaticRange,a::Number) = a*r
+Base.:*(a::Number, r::LengthRange) = LengthStepRange(a*r.zeroth, a*r.step, r.length)
+Base.:*(a::Number, r::LengthRange{<:Any, StaticInteger{0}}) = LengthStepRange(Static(0), a*r.step, r.length)
+Base.:*(r::LengthRange, a::Number) = a*r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::Number,r::LengthRange) = a*r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 
-@inline Base.eachindex(r::StaticRange{<:Any, <:Any, <:Any, <:StaticInteger}) =
+@inline Base.eachindex(r::LengthRange{<:Any, <:Any, <:Any, <:StaticInteger}) =
     StaticOneTo(r.length)

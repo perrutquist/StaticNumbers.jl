@@ -48,13 +48,13 @@ NOTE: The range must be completely static, or inferrence will not work.
 """
 @inline trystatic(x::StaticInteger, r::OrdinalRange{<:Integer, <:Integer}) = x
 @inline trystatic(x::Integer, r::OrdinalRange{<:Integer, <:Integer}) =
-    trystatic(x::Integer, LengthRange(Static(zeroth(r)), Static(step(r)), Static(length(r))))
-@inline trystatic(x::Integer, r::LengthRange{<:Integer, <:StaticInteger, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
+    trystatic(x::Integer, LengthStepRange(Static(zeroth(r)), Static(step(r)), Static(length(r))))
+@inline trystatic(x::Integer, r::LengthStepRange{<:Integer, <:StaticInteger, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
 @inline trystatic(x::Integer, r::UnitRange{<:Integer}) =
     trystatic(x::Integer, LengthUnitRange(Static(zeroth(r)), Static(length(r))))
 @inline trystatic(x::Integer, r::LengthUnitRange{<:Integer, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
 
-#@inline tostatic(x::Integer, r::StepRange) = tostatic(x, LengthRange(Static(zeroth(r)), Static(step(r)), Static(lenght(r)))
+#@inline tostatic(x::Integer, r::StepRange) = tostatic(x, LengthStepRange(Static(zeroth(r)), Static(step(r)), Static(lenght(r)))
 #@inline tostatic(x::Integer, r::UnitRange) = tostatic(x, LengthUnitRange(Static(zeroth(r)), Static(lenght(r)))
 
 """
@@ -73,7 +73,7 @@ function tostaticexpr(z, s, l, blk=identity, x=:x)
     end
 end
 
-@generated function tostatic(x::Integer, r::LengthRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
+@generated function tostatic(x::Integer, r::LengthStepRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
     quote
         Base.@_inline_meta
         $(tostaticexpr(Z, S, L))
@@ -93,7 +93,7 @@ end
 #         $(tostaticexpr(Z, 1, L, y->:(f($y))))
 #     end
 # end
-# @generated function tostatic(f, x::Integer, r::LengthRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
+# @generated function tostatic(f, x::Integer, r::LengthStepRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
 #     quote
 #         Base.@_inline_meta
 #         $(tostaticexpr(Z, S, L, y->:(f($y))))
