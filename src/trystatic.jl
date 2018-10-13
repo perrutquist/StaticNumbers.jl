@@ -48,14 +48,14 @@ NOTE: The range must be completely static, or inferrence will not work.
 """
 @inline trystatic(x::StaticInteger, r::OrdinalRange{<:Integer, <:Integer}) = x
 @inline trystatic(x::Integer, r::OrdinalRange{<:Integer, <:Integer}) =
-    trystatic(x::Integer, StaticStepRange(Static(zeroth(r)), Static(step(r)), Static(length(r))))
-@inline trystatic(x::Integer, r::StaticStepRange{<:Integer, <:StaticInteger, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
+    trystatic(x::Integer, LengthRange(Static(zeroth(r)), Static(step(r)), Static(length(r))))
+@inline trystatic(x::Integer, r::LengthRange{<:Integer, <:StaticInteger, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
 @inline trystatic(x::Integer, r::UnitRange{<:Integer}) =
-    trystatic(x::Integer, StaticUnitRange(Static(zeroth(r)), Static(length(r))))
-@inline trystatic(x::Integer, r::StaticUnitRange{<:Integer, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
+    trystatic(x::Integer, LengthUnitRange(Static(zeroth(r)), Static(length(r))))
+@inline trystatic(x::Integer, r::LengthUnitRange{<:Integer, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
 
-#@inline tostatic(x::Integer, r::StepRange) = tostatic(x, StaticStepRange(Static(zeroth(r)), Static(step(r)), Static(lenght(r)))
-#@inline tostatic(x::Integer, r::UnitRange) = tostatic(x, StaticUnitRange(Static(zeroth(r)), Static(lenght(r)))
+#@inline tostatic(x::Integer, r::StepRange) = tostatic(x, LengthRange(Static(zeroth(r)), Static(step(r)), Static(lenght(r)))
+#@inline tostatic(x::Integer, r::UnitRange) = tostatic(x, LengthUnitRange(Static(zeroth(r)), Static(lenght(r)))
 
 """
 tostatic(x, r)
@@ -73,13 +73,13 @@ function tostaticexpr(z, s, l, blk=identity, x=:x)
     end
 end
 
-@generated function tostatic(x::Integer, r::StaticStepRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
+@generated function tostatic(x::Integer, r::LengthRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
     quote
         Base.@_inline_meta
         $(tostaticexpr(Z, S, L))
     end
 end
-@generated function tostatic(x::Integer, r::StaticUnitRange{<:Integer, StaticInteger{Z}, StaticInteger{L}}) where {Z, L}
+@generated function tostatic(x::Integer, r::LengthUnitRange{<:Integer, StaticInteger{Z}, StaticInteger{L}}) where {Z, L}
     quote
         Base.@_inline_meta
         $(tostaticexpr(Z, 1, L))
@@ -87,13 +87,13 @@ end
 end
 
 # do-constructs are probably not worth the effort
-# @generated function tostatic(f, x::Integer, r::StaticUnitRange{<:Integer, StaticInteger{Z}, StaticInteger{L}}) where {Z, L}
+# @generated function tostatic(f, x::Integer, r::LengthUnitRange{<:Integer, StaticInteger{Z}, StaticInteger{L}}) where {Z, L}
 #     quote
 #         Base.@_inline_meta
 #         $(tostaticexpr(Z, 1, L, y->:(f($y))))
 #     end
 # end
-# @generated function tostatic(f, x::Integer, r::StaticStepRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
+# @generated function tostatic(f, x::Integer, r::LengthRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
 #     quote
 #         Base.@_inline_meta
 #         $(tostaticexpr(Z, S, L, y->:(f($y))))
@@ -113,8 +113,8 @@ end
 If `y` is not `Static`, then `staticmod(x,y)` is the same as `mod(x,y)`.
 """
 staticmod(x, y) = mod(x,y)
-@inline staticmod(x::Integer, y::StaticInteger) = tostatic(mod(x,y), StaticUnitRange(Static(-1), y))
+@inline staticmod(x::Integer, y::StaticInteger) = tostatic(mod(x,y), LengthUnitRange(Static(-1), y))
 
 # do-constructs. Remove?
 # staticmod(f, x, y) = f(mod(x,y))
-# @inline staticmod(f, x::Integer, y::StaticInteger) = tostatic(f, mod(x,y), StaticUnitRange(Static(-1), y))
+# @inline staticmod(f, x::Integer, y::StaticInteger) = tostatic(f, mod(x,y), LengthUnitRange(Static(-1), y))

@@ -121,13 +121,13 @@ end
 @test staticlength(1:3) isa StaticRange
 @test length(staticlength(1:3)) === Static(3)
 
-r = StaticStepRange(1, 2, Static(3))
+r = LengthRange(1, 2, Static(3))
 
 @test r isa StaticRange
 @test r isa StaticRange{Int, Int, Int, <:Static}
 @test r isa StaticRange{Int, Int, Int, <:Static{3}}
 @test r isa StaticRange{Int, Int, Int, StaticInteger{3}}
-@test r isa StaticNumbers.StaticStepRange{Int, Int, Int, StaticInteger{3}}
+@test r isa StaticNumbers.LengthRange{Int, Int, Int, StaticInteger{3}}
 @test all(r .== 3:2:7)
 @test r[2] == 5
 @test all(collect(r) .== [3, 5, 7])
@@ -166,12 +166,12 @@ r = StaticStepRange(1, 2, Static(3))
 @test ofstatictype(Static(1), 2) === Static(2)
 @test ofstatictype(1.0, 2) === 2.0
 
-ur = StaticUnitRange(2, Static(3))
+ur = LengthUnitRange(2, Static(3))
 @test ur isa StaticRange
 @test ur isa StaticRange{Int, Int, <:Static, <:Static}
 @test ur isa StaticRange{Int, Int, <:Static{1}, <:Static{3}}
 @test ur isa StaticRange{Int, Int, StaticInteger{1}, StaticInteger{3}}
-@test ur isa StaticNumbers.StaticUnitRange{Int, Int, StaticInteger{3}}
+@test ur isa StaticNumbers.LengthUnitRange{Int, Int, StaticInteger{3}}
 @test all(ur .== 3:5)
 @test ur[2] == 4
 @test all(collect(ur) .== [3, 4, 5])
@@ -197,8 +197,8 @@ ur = StaticUnitRange(2, Static(3))
 @test all( (7:3:100)[ur] .== (7:3:100)[3:5] )
 
 # Test types
-@test StaticRange(1:3) isa StaticUnitRange
-@test StaticRange(1:2:4) isa StaticStepRange
+@test StaticRange(1:3) isa LengthUnitRange
+@test StaticRange(1:2:4) isa LengthRange
 
 # Test that type inferrence is working
 @test Base.return_types(*, (Int, typeof(r)))[1] === typeof(r)
@@ -220,7 +220,7 @@ f4(x) = trystatic(x, Static(3), Static(4))
 g4() = f4(4)
 @test Base.return_types(g4, ())[1] == StaticInteger{4}
 
-f5(x) = trystatic(mod(x,4), StaticStepRange(Static(-1),Static(1),Static(4)))
+f5(x) = trystatic(mod(x,4), LengthRange(Static(-1),Static(1),Static(4)))
 @show Base.return_types(f5, (Int,))
 g5() = f5(2)
 @show Base.return_types(g5, ())

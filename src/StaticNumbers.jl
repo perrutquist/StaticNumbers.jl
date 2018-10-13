@@ -196,7 +196,7 @@ end
 
 include("macros.jl")
 
-include("StaticRanges.jl")
+include("LengthRanges.jl")
 
 include("trystatic.jl")
 
