@@ -211,19 +211,19 @@ f2(x) = trystatic(x, 3)
 @test Base.return_types(f2, (Int64,))[1] == Union{StaticInteger{3}, Int64}
 
 f3(x) = trystatic(x, 3, 4)
-@show Base.return_types(f3, (Int,))
+# @show Base.return_types(f3, (Int,))
 g3() = f3(4)
 @test Base.return_types(g3, ())[1] == StaticInteger{4}
 
 f4(x) = trystatic(x, Static(3), Static(4))
-@show Base.return_types(f4, (Int,))
+# @show Base.return_types(f4, (Int,))
 g4() = f4(4)
 @test Base.return_types(g4, ())[1] == StaticInteger{4}
 
-f5(x) = trystatic(mod(x,4), LengthStepRange(Static(-1),Static(1),Static(4)))
-@show Base.return_types(f5, (Int,))
-g5() = f5(2)
-@show Base.return_types(g5, ())
+# f5(x) = trystatic(mod(x,4), LengthStepRange(Static(-1),Static(1),Static(4)))
+# @show Base.return_types(f5, (Int,))
+# g5() = f5(2)
+# @show Base.return_types(g5, ())
 
 # Test array handling with static ranges
 A = rand(16,16)
