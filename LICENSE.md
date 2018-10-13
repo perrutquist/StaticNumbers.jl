@@ -1,4 +1,4 @@
-The FixedNumbers.jl package is licensed under the MIT "Expat" License:
+The StaticNumbers.jl package is licensed under the MIT "Expat" License:
 
 > Copyright (c) 2018: Per Rutquist.
 >

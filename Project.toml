@@ -1,5 +1,5 @@
-name = "FixedNumbers"
-uuid = "dc9d3b2e-a12c-11e8-27a8-6555b9654398"
+name = "StaticNumbers"
+uuid = "72a81bbf-99bf-5aa3-901b-88f572a6e6f6"
 authors = ["Per Rutquist <per.rutquist@gmail.com>"]
 version = "0.1.0"
 
