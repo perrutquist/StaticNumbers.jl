@@ -3,7 +3,8 @@ module StaticNumbers
 # TODO: This module should be renamed StaticNumbers, and the word `static`
 # replaced by `static` everywhere.
 
-export Static, StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
+export Static, static,
+       StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
        @staticnumbers, ofstatictype
 
 const StaticError = ErrorException("Illegal type parameter for Static.")
@@ -53,19 +54,21 @@ and `StaticNumber{X}`.
 """
 const Static{X} = Union{StaticInteger{X}, StaticReal{X}, StaticNumber{X}}
 
-# We'll allow this constructor, but not recommend it.
-Static{X}() where X = Static(X)
+# We'll define this constructor, but not recommend it.
+Static{X}() where X = static(X)
 
 # This is the recommended constructor.
 """
-`Static(X)` is shorthand for `StaticInteger{X}()`, `StaticReal{X}()` or `StaticNumber{X}()`,
+`static(X)` is shorthand for `StaticInteger{X}()`, `StaticReal{X}()` or `StaticNumber{X}()`,
 depending on the type of `X`.
 """
-Base.@pure Static(X::Static) = X
-Base.@pure Static(X::Irrational) = X # These are already defined by their type.
-Base.@pure Static(X::Integer) = StaticInteger{X}()
-Base.@pure Static(X::Real) = StaticReal{X}()
-Base.@pure Static(X::Number) = StaticNumber{X}()
+static(x::StaticInteger) = x
+static(x::StaticReal) = x
+static(x::StaticNumber) = x
+Base.@pure static(x::Integer) = StaticInteger(x)
+Base.@pure static(x::Real) = StaticReal(x)
+Base.@pure static(x::Number) = StaticNumber(x)
+static(x::Irrational) = x # These are already defined by their type.
 
 # Functions that take only `Int` may be too restrictive.
 # The StaticOrInt type union is often a better choice.
@@ -105,7 +108,7 @@ end
 Base.convert(::Type{T}, ::Static{X}) where {T<:Number,X} = convert(T, X)
 
 "ofstatictype(x,y) - like oftype(x,y), but return a `Static` `x` is a `Static`."
-ofstatictype(::Static{X}, y) where {X} = Static(oftype(X, y))
+ofstatictype(::Static{X}, y) where {X} = static(oftype(X, y))
 ofstatictype(x, y) = oftype(x, y)
 
 # TODO: Constructors to avoid Static{Static}
@@ -183,13 +186,13 @@ Base.:^(x::Static{X}, ::StaticInteger{X}) where {X} = Base.literal_pow(^, X, Val
 # ntuple accepts Val, so it should also accept static
 @inline Base.ntuple(f::F, ::StaticInteger{N}) where {F,N} = Base.ntuple(f, Val(N))
 
-# For brevity, all `Static` numbers are displayed as `Static(X)`, rather than, for
+# For brevity, all `Static` numbers are displayed as `static(X)`, rather than, for
 # example, `StaticInteger{X}()`. It is possible to discern between the different
 # types of `Static` by looking at `X`.
 # To get the default behaviour back, run:
 #   methods(Base.show, (IO, Static{X} where X)) |> first |> Base.delete_method
 function Base.show(io::IO, x::Static{X}) where X
-    print(io, "Static(")
+    print(io, "static(")
     show(io, X)
     print(io, ")")
 end

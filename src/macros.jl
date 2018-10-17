@@ -11,7 +11,7 @@ function genstaticmethod1(fun, arg1, targets)
     end
     ts = filter(isequal(r), targets)
     if length(ts) == 1
-        return :( $fun(::$(typeof(Static(arg1)))) = $(Static(first(ts))) )
+        return :( $fun(::$(typeof(static(arg1)))) = $(static(first(ts))) )
     end
     return nothing
 end
@@ -28,7 +28,7 @@ function genstaticmethod2(fun, arg1, arg2, targets)
     end
     ts = filter(isequal(r), targets)
     if length(ts) == 1
-        return :( $fun(::$(typeof(Static(arg1))),::$(typeof(Static(arg2)))) = $(Static(first(ts))) )
+        return :( $fun(::$(typeof(static(arg1))),::$(typeof(static(arg2)))) = $(static(first(ts))) )
     end
     return nothing
 end

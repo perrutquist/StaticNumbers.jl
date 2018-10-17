@@ -50,7 +50,7 @@ struct LengthUnitRange{T,Z,L} <: AbstractUnitRange{T}
         else
             l = max(l,zero(l))::L
         end
-        new{T,Z,L}(z, Static(1), l)
+        new{T,Z,L}(z, static(1), l)
     end
 end
 
@@ -150,8 +150,8 @@ end
 """
 `staticlength(range)` converts to a range where the length is `Static`.
 """
-staticlength(r::StepRange) = LengthStepRange(zeroth(r), step(r), Static(length(r)))
-staticlength(r::UnitRange) = LengthUnitRange(zeroth(r), Static(length(r)))
+staticlength(r::StepRange) = LengthStepRange(zeroth(r), step(r), static(length(r)))
+staticlength(r::UnitRange) = LengthUnitRange(zeroth(r), static(length(r)))
 
 function Base.show(io::IO, r::LengthRange{<:Integer, <:Integer, <:Integer, <:StaticInteger})
     print(io, "staticlength(", first(r), ":")
@@ -168,14 +168,14 @@ broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthUnitRange, a::Real) = 
 
 Base.:-(r::LengthStepRange) = LengthStepRange(-r.zeroth, -r.step, r.length)
 Base.:-(r::LengthStepRange{<:Any,<:Integer,StaticInteger{-1}}) = LengthUnitRange(-r.zeroth, r.length)
-Base.:-(r::LengthUnitRange) = LengthStepRange(-r.zeroth, Static(-1), r.length)
+Base.:-(r::LengthUnitRange) = LengthStepRange(-r.zeroth, static(-1), r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthRange) = -r
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), a::Number, r::LengthRange) = LengthStepRange(a-r.zeroth, -r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthStepRange, a::Number) = LengthStepRange(r.zeroth-a, r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthUnitRange, a::Real) = LengthUnitRange(r.zeroth-a, r.length)
 
 Base.:*(a::Number, r::LengthRange) = LengthStepRange(a*r.zeroth, a*r.step, r.length)
-Base.:*(a::Number, r::LengthRange{<:Any, StaticInteger{0}}) = LengthStepRange(Static(0), a*r.step, r.length)
+Base.:*(a::Number, r::LengthRange{<:Any, StaticInteger{0}}) = LengthStepRange(static(0), a*r.step, r.length)
 Base.:*(r::LengthRange, a::Number) = a*r
 broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::Number,r::LengthRange) = a*r
 broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
