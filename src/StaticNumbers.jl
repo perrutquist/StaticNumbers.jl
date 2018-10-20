@@ -19,7 +19,7 @@ struct StaticInteger{X} <: Integer
         new{X}()
     end
 end
-
+StaticInteger{X}(x::Integer) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
 Base.@pure StaticInteger(x::Integer) = StaticInteger{x}()
 
 """
@@ -32,7 +32,7 @@ struct StaticReal{X} <: Real
         new{X}()
     end
 end
-
+StaticReal{X}(x::Real) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
 Base.@pure StaticReal(x::Real) = StaticReal{x}()
 
 """
@@ -45,7 +45,7 @@ struct StaticNumber{X} <: Number
         new{X}()
     end
 end
-
+StaticNumber{X}(x::Number) where {X} = x==X ? StaticNumber{X}() : throw(InexactError(:StaticNumber, StaticReal{X}, x))
 Base.@pure StaticNumber(x::Number) = StaticNumber{x}()
 
 """
