@@ -19,8 +19,8 @@ struct StaticInteger{X} <: Integer
         new{X}()
     end
 end
-StaticInteger{X}(x::Integer) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
-Base.@pure StaticInteger(x::Integer) = StaticInteger{x}()
+StaticInteger{X}(x::Number) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
+Base.@pure StaticInteger(x::Number) = StaticInteger{Integer(x)}()
 
 """
 A `StaticReal` is a `Real` whose value is stored in the type, and which
@@ -32,8 +32,8 @@ struct StaticReal{X} <: Real
         new{X}()
     end
 end
-StaticReal{X}(x::Real) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
-Base.@pure StaticReal(x::Real) = StaticReal{x}()
+StaticReal{X}(x::Number) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
+Base.@pure StaticReal(x::Number) = StaticReal{Real(x)}()
 
 """
 A `StaticNumber` is a `Number` whose value is stored in the type, and which
@@ -100,13 +100,6 @@ Base.promote_rule(::Type{<:Static{X}}, ::Type{T}) where {X,T<:Number} =
 # Bool has a special rule that we need to override?
 #Base.promote_rule(::Type{Bool}, ::Type{StaticInteger{X}}) where {X} = promote_type(Bool, typeof(X))
 
-function Base.convert(T::Type{<:Static{X}}, y::Number) where {X}
-    X == y || throw(InexactError(:convert, T, y))
-    return T()
-end
-
-Base.convert(::Type{T}, ::Static{X}) where {T<:Number,X} = convert(T, X)
-
 "ofstatictype(x,y) - like oftype(x,y), but return a `Static` `x` is a `Static`."
 ofstatictype(::Static{X}, y) where {X} = static(oftype(X, y))
 ofstatictype(x, y) = oftype(x, y)
@@ -125,8 +118,8 @@ end
 for T in (:ComplexF32, :ComplexF64, :Complex)
     @eval Base.$T(::Static{X}) where X = $T(X)
 end
-Rational{T}(::Union{StaticInteger{X}, StaticReal{X}}) where {T,X} = Rational{T}(X)
-Complex{T}(::Static{X}) where {T,X} = Complex{T}(X)
+Rational{T}(::Union{StaticInteger{X}, StaticReal{X}}) where {T<:Integer,X} = Rational{T}(X)
+Complex{T}(::Static{X}) where {T<:Real,X} = Complex{T}(X)
 # big(x) still defaults to convert.
 
 # Single-argument functions that do not already work.
