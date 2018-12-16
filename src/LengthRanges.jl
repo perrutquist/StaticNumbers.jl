@@ -138,6 +138,11 @@ Base.@pure StaticOneTo(::StaticInteger{N}) where N = StaticOneTo{N}()
 @inline Base.OneTo(n::StaticInteger) = StaticOneTo(n)
 @inline Base.:(:)(a::StaticInteger{1}, b::StaticInteger) = StaticOneTo(b)
 
+if VERSION >= v"1.1.0-"
+Base.Broadcast.axistype(a::StaticOneTo, b::Base.OneTo) = b
+Base.Broadcast.axistype(a::Base.OneTo, b::StaticOneTo) = a
+end
+
 # These functions from base/abstractarray.jl need to be extended to also accept StaticOneTo
 Base.similar(a::AbstractArray, ::Type{T}, dims::Tuple{Union{Integer, Base.OneTo, StaticOneTo}, Vararg{Union{Integer, Base.OneTo, StaticOneTo}}}) where {T} = similar(a, T, Base.to_shape(dims))
 Base.similar(::Type{T}, shape::Tuple{Union{Integer, Base.OneTo, StaticOneTo}, Vararg{Union{Integer, Base.OneTo, StaticOneTo}}}) where {T<:AbstractArray} = similar(T, Base.to_shape(shape))
