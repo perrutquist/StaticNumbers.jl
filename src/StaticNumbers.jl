@@ -100,6 +100,9 @@ Base.promote_rule(::Type{<:Static{X}}, ::Type{T}) where {X,T<:Number} =
 # Bool has a special rule that we need to override?
 #Base.promote_rule(::Type{Bool}, ::Type{StaticInteger{X}}) where {X} = promote_type(Bool, typeof(X))
 
+(::Type{T})(::Static{X}) where {T<:Number,X} = T(X)
+Base.BigInt(::Static{X}) where {X} = BigInt(X)
+
 "ofstatictype(x,y) - like oftype(x,y), but return a `Static` `x` is a `Static`."
 ofstatictype(::Static{X}, y) where {X} = static(oftype(X, y))
 ofstatictype(x, y) = oftype(x, y)

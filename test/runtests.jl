@@ -233,3 +233,5 @@ C = A[staticlength(5:8),StaticOneTo(4)]
 A[StaticOneTo(4),StaticOneTo(4)] = C
 @test all(A[StaticOneTo(4),StaticOneTo(4)] .== C)
 @test all(staticlength(3:4).^2 == (3:4).^2)
+
+@test Unsigned(static(2)) === Unsigned(2)
