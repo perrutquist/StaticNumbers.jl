@@ -35,7 +35,7 @@ for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
         @test static(x) + static(y) === x + y
         for f in (:-, :*, :/, :^, :rem, :mod, :(<<), :(>>), :(==), :(<), :(<=), :(>), :(>=))
             r = try
-                @eval $f($x,$y)
+                f(x,y)
             catch
                 nothing
             end
