@@ -173,7 +173,7 @@ fma(x::Static{X}, y::Static{X}, z::Static{X}) where {X} = fma(X,X,X)
 
 # Static powers using Base.literal_pow.
 # This avoids DomainError in some cases?
-for T in (Int32, Int64, Float32, Float64, ComplexF32, ComplexF64)
+for T in (Int32, Int64, Float32, Float64, ComplexF32, ComplexF64, Irrational)
     Base.:^(x::T, ::StaticInteger{p}) where {p} = Base.literal_pow(^, x, Val(p))
 end
 Base.:^(x::Static{X}, ::StaticInteger{p}) where {X,p} = Base.literal_pow(^, X, Val(p))
