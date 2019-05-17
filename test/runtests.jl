@@ -29,7 +29,7 @@ for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
             @test @eval $f(static($x)) == $r
         end
     end
-    for y in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
+    for y in (-1.0, -1, -1//2, -0.5, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
         @test static(x) + y === x + y
         @test x + static(y) === x + y
         @test static(x) + static(y) === x + y
