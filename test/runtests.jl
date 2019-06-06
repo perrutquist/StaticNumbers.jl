@@ -248,3 +248,12 @@ struct MyType <: Real
 end
 @test MyType(static(3)) === MyType(3)
 @test MyType(static(3.0)) === MyType(3.0)
+
+@test maybe_static(+, 2, 2) === 4
+@test maybe_static(+, static(2), 2) === 4
+@test maybe_static(+, 2, static(2)) === 4
+@test maybe_static(+, static(2), static(2)) === static(4)
+Test.@inferred maybe_static(+, 2, 2)
+Test.@inferred maybe_static(+, static(2), 2)
+Test.@inferred maybe_static(+, 2, static(2))
+Test.@inferred maybe_static(+, static(2), static(2))

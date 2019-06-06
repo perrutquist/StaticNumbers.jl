@@ -35,8 +35,9 @@ that creates static variables is named `static`.
 
 By default, any operation on a `Static` will result in a non-`Static` type.
 For example, `static(2)+static(2)` gives `4`, not `static(4)`.
-But Julia's type inference engine is quite powerful! If `a` and `b` are `Static`,
-then the type of `static(a+b)` will be inferred.
+The function `maybe_static` makes the result of a computation `Static` when
+all arguments are static. For example, `maybe_static(+, static(2), static(2))`
+will return `static(4)`. (Julia is often able to infer the return type.)
 
 It is of course also possible to overload methods to return `Static` for `Static`
 inputs. The `@staticnumbers` macro can be used on a small set of `Static` numbers
