@@ -17,8 +17,8 @@ using Test
 @test static(true) == true
 @test static(false) == false
 
-for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
-    for f in (:round, :ceil, :floor, :sign, :cos, :sin, :log, :exp, :isfinite, :isnan)
+for x in (-1.0, -1, 0, 0.0, false, true, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im, Inf)
+    for f in (:round, :ceil, :floor, :sign, :cos, :sin, :log, :exp, :isfinite, :isnan, :abs, :abs2, :iszero, :isone)
         r = try
             @eval $f($x)
         catch
@@ -29,7 +29,7 @@ for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
             @test @eval $f(static($x)) == $r
         end
     end
-    for y in (-1.0, -1, -1//2, -0.5, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
+    for y in (-1.0, -1, -1//2, -0.5, 0, 0.0, false, true, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im, Inf)
         @test static(x) + y === x + y
         @test x + static(y) === x + y
         @test static(x) + static(y) === x + y
@@ -41,9 +41,15 @@ for x in (-1.0, -1, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im)
             end
             if r != nothing
                 #println(f, (x,y), " ≈ ", r)
-                @test @eval $f(static($x), $y) ≈ $r
-                @test @eval $f($x, static($y)) ≈ $r
-                @test @eval $f(static($x), static($y)) ≈ $r
+                if isnan(r)
+                    @test @eval isnan($f(static($x), $y))
+                    @test @eval isnan($f($x, static($y)))
+                    @test @eval isnan($f(static($x), static($y)))
+                else
+                    @test @eval $f(static($x), $y) ≈ $r
+                    @test @eval $f($x, static($y)) ≈ $r
+                    @test @eval $f(static($x), static($y)) ≈ $r
+                end
             end
         end
     end
@@ -235,3 +241,10 @@ A[StaticOneTo(4),StaticOneTo(4)] = C
 @test all(staticlength(3:4).^2 == (3:4).^2)
 
 @test Unsigned(static(2)) === Unsigned(2)
+
+# Test with a new numeric type
+struct MyType <: Real
+    x::Float64
+end
+@test MyType(static(3)) === MyType(3)
+@test MyType(static(3.0)) === MyType(3.0)

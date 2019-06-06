@@ -4,7 +4,7 @@ module StaticNumbers
 # replaced by `static` everywhere.
 
 export Static, static,
-       StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
+       StaticBool, StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
        @staticnumbers, ofstatictype
 
 const StaticError = ErrorException("Illegal type parameter for Static.")
@@ -80,28 +80,30 @@ Base.promote_rule(::Type{<:Static{X}}, ::Type{<:Static{X}}) where {X} =
 Base.promote_rule(::Type{<:AbstractIrrational}, ::Type{<:Static{X}}) where {X} =
     promote_type(Float64, typeof(X))
 
-# We need to override promote and promote_typeof because they don't even call
-# promote_rule for all-same types.
-for T in (StaticInteger, StaticReal, StaticNumber)
-    @eval Base.promote(::$T{X}, ys::$T{X}...) where {X} = ntuple(i->X, 1+length(ys))
-    @eval Base.promote_type(::Type{$T{X}}, ::Type{$T{X}}) where {X} = typeof(X)
-    @eval Base.promote_typeof(::$T{X}, ::$T{X}...) where {X} = typeof(X)
+# Loop over all three types specifically, instead of dispatching on the Union.
+for ST in (StaticInteger, StaticReal, StaticNumber)
+    # We need to override promote and promote_typeof because they don't even call
+    # promote_rule for all-same types.
+    Base.promote(::ST{X}, ys::ST{X}...) where {X} = ntuple(i->X, 1+length(ys))
+    Base.promote_type(::Type{ST{X}}, ::Type{ST{X}}) where {X} = typeof(X)
+    Base.promote_typeof(::ST{X}, ::ST{X}...) where {X} = typeof(X)
     # To avoid infinite recursion, we need this:
-    @eval Base.promote_type(::Type{$T{X}}, S::Type...) where {X} = promote_type(typeof(X), promote_type(S...))
+    Base.promote_type(::Type{ST{X}}, T::Type...) where {X} = promote_type(typeof(X), promote_type(T...))
+
+    Base.promote_rule(::Type{<:ST{X}}, ::Type{T}) where {X,T<:Number} = promote_type(typeof(X), T)
+
+    # Constructors
+    (::Type{Complex{T}})(::ST{X}) where {T<:Real, X} = Complex{T}(X)
+    (::Type{Rational{T}})(::ST{X}) where {T<:Integer, X} = Rational{T}(X)
 end
 
 Base.promote_rule(::Type{<:Static{X}}, ::Type{<:Static{Y}}) where {X,Y} =
     promote_type(typeof(X),typeof(Y))
 
-Base.promote_rule(::Type{<:Static{X}}, ::Type{T}) where {X,T<:Number} =
-    promote_type(typeof(X), T)
-
-
 # Bool has a special rule that we need to override?
 #Base.promote_rule(::Type{Bool}, ::Type{StaticInteger{X}}) where {X} = promote_type(Bool, typeof(X))
 
-(::Type{T})(::Static{X}) where {T<:Number,X} = T(X)
-Base.BigInt(::Static{X}) where {X} = BigInt(X)
+#Base.BigInt(::Static{X}) where {X} = BigInt(X)
 
 "ofstatictype(x,y) - like oftype(x,y), but return a `Static` `x` is a `Static`."
 ofstatictype(::Static{X}, y) where {X} = static(oftype(X, y))
@@ -110,19 +112,14 @@ ofstatictype(x, y) = oftype(x, y)
 # TODO: Constructors to avoid Static{Static}
 
 # Some of the more common constructors that do not default to `convert`
-# TODO:  We should have a (::Type{T})(x::Static) where {T<:Number} constructor
-# instead of all of these.
-# Need to figure out a way to avoid ambiguities.
-for T in (:Bool, :Int32, :UInt32, :Int64, :UInt64, :Int128, :Integer)
+# Note:  We cannot have a (::Type{T})(x::Static) where {T<:Number} constructor
+# instead of all of these, because of ambiguities with user-defined types.
+
+for T in (:Bool, :Int32, :UInt32, :Int64, :UInt64, :Int128, :BigInt, :Unsigned, :Integer)
     @eval Base.$T(::StaticInteger{X}) where X = $T(X)
 end
 (::Type{T})(x::Union{StaticReal{X}, StaticInteger{X}}) where {T<:AbstractFloat, X} = T(X)
-(::Type{T})(x::Static{X}) where {T<:Complex, X} = T(X)
-for T in (:ComplexF32, :ComplexF64, :Complex)
-    @eval Base.$T(::Static{X}) where X = $T(X)
-end
-Rational{T}(::Union{StaticInteger{X}, StaticReal{X}}) where {T<:Integer,X} = Rational{T}(X)
-Complex{T}(::Static{X}) where {T<:Real,X} = Complex{T}(X)
+
 # big(x) still defaults to convert.
 
 # Single-argument functions that do not already work.
@@ -141,15 +138,36 @@ end
 # It's a pity there's no AbstractBool supertype.
 const StaticBool = Union{StaticInteger{false}, StaticInteger{true}}
 const StaticOrBool = Union{StaticBool, Bool}
+
 Base.:!(x::StaticBool) = !Bool(x)
+
+# Because Base does not widen Bool
+Base.widemul(x::StaticBool, y::Number) = x*y
+Base.widemul(x::Number, y::StaticBool) = x*y
+
+# false is a strong zero
+for T in (Integer, Real, Number, Complex{<:Real}, StaticInteger, StaticReal, StaticNumber)
+    Base.:*(::StaticInteger{false}, y::T) = zero(y)
+    Base.:*(x::T, ::StaticInteger{false}) = zero(x)
+end
+Base.:*(::StaticInteger{false}, ::StaticInteger{false}) = false # disambig
+
+# Handle static(Inf)*false
+Base.:*(x::Bool, ::StaticReal{Y}) where Y = x*Y
+Base.:*(::StaticReal{X}, y::Bool) where X = X*y
+
+# Until https://github.com/JuliaLang/julia/pull/32117 is merged
+Base.:*(::StaticInteger{false}, ::AbstractIrrational) = 0.0
+Base.:*(::AbstractIrrational, ::StaticInteger{false}) = 0.0
 
 # For complex-valued inputs, there's no auto-convert to floating-point.
 # We only support a limited subset of functions, which the user can extend
 # as needed.
 # TODO: Should have a macro for making functions accept Static input.
-for fun in (:abs, :cos, :sin, :exp, :log, :isinf, :isfinite, :isnan)
+for fun in (:abs, :abs2, :cos, :sin, :exp, :log, :isinf, :isfinite, :isnan)
     @eval Base.$fun(::StaticNumber{X}) where {X} = Base.$fun(X)
 end
+Base.sign(::StaticInteger{X}) where {X} = Base.sign(X) # work around problem with Bool
 
 # Other functions that do not already work
 Base.:(<<)(::StaticInteger{X}, y::UInt64) where {X} = X << y
@@ -165,15 +183,15 @@ Base.:|(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
 Base.:xor(::StaticInteger{X}, ::StaticInteger{X}) where {X} = zero(X)
 Base.:<(::Static{X}, ::Static{X}) where {X} = false
 Base.:<=(::Static{X}, ::Static{X}) where {X} = true
-Base.:rem(::Static{X}, ::Static{X}) where {X} = zero(X)
-Base.:mod(::Static{X}, ::Static{X}) where {X} = zero(X)
+Base.:rem(::Static{X}, ::Static{X}) where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? oftype(X, NaN) : throw(DivideError()) : zero(X)
+Base.:mod(::Static{X}, ::Static{X}) where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? oftype(X, NaN) : throw(DivideError()) : zero(X)
 
 # Three-argument function that gives no_op_err
 fma(x::Static{X}, y::Static{X}, z::Static{X}) where {X} = fma(X,X,X)
 
 # Static powers using Base.literal_pow.
 # This avoids DomainError in some cases?
-for T in (Int32, Int64, Float32, Float64, ComplexF32, ComplexF64, Irrational)
+for T in (Bool, Int32, Int64, Float32, Float64, ComplexF32, ComplexF64, Irrational)
     Base.:^(x::T, ::StaticInteger{p}) where {p} = Base.literal_pow(^, x, Val(p))
 end
 Base.:^(x::Static{X}, ::StaticInteger{p}) where {X,p} = Base.literal_pow(^, X, Val(p))
@@ -192,6 +210,11 @@ function Base.show(io::IO, x::Static{X}) where X
     show(io, X)
     print(io, ")")
 end
+
+# Dont promote when it's better to treat real and imaginary parts separately
+Base.:/(::StaticNumber{X}, y::Real) where {X} = X/y
+Base.:*(::StaticNumber{X}, y::Real) where {X} = X*y
+Base.:*(x::Real, ::StaticNumber{Y}) where {Y} = x*Y
 
 include("macros.jl")
 

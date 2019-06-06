@@ -1,7 +1,7 @@
 name = "StaticNumbers"
 uuid = "c5e4b96a-f99f-5557-8ed2-dc63ef9b5131"
 authors = ["Per Rutquist <per.rutquist@gmail.com>"]
-version = "0.1.3"
+version = "0.2.0"
 
 [deps]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
