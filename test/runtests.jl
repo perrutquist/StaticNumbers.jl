@@ -121,6 +121,8 @@ end
 @test rem(static(1), static(1)) === static(0)
 
 @test ntuple(identity, static(5)) === ntuple(identity, Val(5))
+Test.@inferred ntuple(identity, static(5))
+Test.@inferred ntuple(static, static(5))
 
 # Test StaticRanges
 
@@ -207,29 +209,23 @@ ur = LengthUnitRange(2, static(3))
 @test LengthRange(1:2:4) isa LengthStepRange
 
 # Test that type inferrence is working
-@test Base.return_types(*, (Int, typeof(r)))[1] === typeof(r)
-@test Base.return_types(*, (Int, typeof(ur)))[1] === typeof(r)
-
-f1(x) = trystatic(x, static(3))
-@test Base.return_types(f1, (Int64,))[1] == Union{StaticInteger{3}, Int64}
-
-f2(x) = trystatic(x, 3)
-@test Base.return_types(f2, (Int64,))[1] == Union{StaticInteger{3}, Int64}
+Test.@inferred 2*r
+Test.@inferred 2*ur
 
 f3(x) = trystatic(x, 3, 4)
 # @show Base.return_types(f3, (Int,))
 g3() = f3(4)
-@test Base.return_types(g3, ())[1] == StaticInteger{4}
+Test.@inferred g3()
 
 f4(x) = trystatic(x, static(3), static(4))
 # @show Base.return_types(f4, (Int,))
 g4() = f4(4)
-@test Base.return_types(g4, ())[1] == StaticInteger{4}
+Test.@inferred g4()
 
-# f5(x) = trystatic(mod(x,4), LengthStepRange(static(-1),static(1),static(4)))
-# @show Base.return_types(f5, (Int,))
-# g5() = f5(2)
-# @show Base.return_types(g5, ())
+ # f5(x) = trystatic(mod(x,4), LengthStepRange(static(-1),static(1),static(4)))
+ # @show Base.return_types(f5, (Int,))
+ # g5() = f5(2)
+ # @show Base.return_types(g5, ())
 
 # Test array handling with static ranges
 A = rand(16,16)
