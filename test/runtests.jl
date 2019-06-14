@@ -270,3 +270,6 @@ x = 3
 StaticNumbers.@tostatic x 2 5 begin
     @test x === static(3)
 end
+
+x = static(3)
+@test StaticNumbers.@tostatic(x, 0, 0) === static(3)

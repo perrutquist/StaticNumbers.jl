@@ -117,7 +117,13 @@ end
 macro tostatic(x::Symbol, start::Int, stop::Int, blk=x)
     xx = esc(x)
     xblk = esc(blk)
-    StaticNumbers.tostaticexpr(start-1, 1, stop-start+1, y->:( let $xx=$y; $xblk; end), xx)
+    quote
+        if $xx isa Static
+            $xblk
+        else
+            $(StaticNumbers.tostaticexpr(start-1, 1, stop-start+1, y->:( let $xx=$y; $xblk; end), xx))
+        end
+    end
 end
 
 """
