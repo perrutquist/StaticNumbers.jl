@@ -73,6 +73,10 @@ Returns a `Static` integer, equal to `x` from the range `r`. If no element in
 """
 @inline tostatic(x::Static, r::OrdinalRange{<:Integer, <:Integer}) = x
 
+# Simpler variation:
+#@inline tostatic(x::Static, r) = x
+#@inline tostatic(x::Integer, r) = ntuple(i->static(r[i]), length(r))[x-first(r)
+
 function tostaticexpr(z, s, l, blk=identity, x=:x)
     if l<=1
         blk(:( StaticInteger{$(z+s)}() ))
@@ -109,12 +113,12 @@ end
 #     end
 # end
 
-# # TODO: Make cleaner macro interface!
-# macro tostatic(x::Symbol, n::Int, blk)
-#     xx = esc(x)
-#     xblk = esc(blk)
-#     StaticNumbers.tostaticexpr(0, 1, n, y->:( let $xx=$y; $xblk; end), xx)
-# end
+# TODO: Make cleaner macro interface!
+macro tostatic(x::Symbol, start::Int, stop::Int, blk=x)
+    xx = esc(x)
+    xblk = esc(blk)
+    StaticNumbers.tostaticexpr(start-1, 1, stop-start+1, y->:( let $xx=$y; $xblk; end), xx)
+end
 
 """
 `staticmod(x,y)` returns `static(mod(x,y))` if `y` is `Static`.

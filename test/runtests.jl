@@ -253,3 +253,20 @@ Test.@inferred maybe_static(+, 2, 2)
 Test.@inferred maybe_static(+, static(2), 2)
 Test.@inferred maybe_static(+, 2, static(2))
 Test.@inferred maybe_static(+, static(2), static(2))
+
+# Test @tostatic macro
+
+x = 0
+@test StaticNumbers.@tostatic(x, 0, 3) === static(0)
+@test StaticNumbers.@tostatic(x, -1, 0) === static(0)
+@test StaticNumbers.@tostatic(x, 0, 0) === static(0)
+
+x = 3
+@test StaticNumbers.@tostatic(x, 0, 3) === static(3)
+@test StaticNumbers.@tostatic(x, 2, 7) === static(3)
+@test StaticNumbers.@tostatic(x, 3, 3) === static(3)
+@test StaticNumbers.@tostatic(x, 3, 4) === static(3)
+
+StaticNumbers.@tostatic x 2 5 begin
+    @test x === static(3)
+end
