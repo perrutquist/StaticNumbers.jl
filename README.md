@@ -11,10 +11,8 @@ that the number is constant at runtime.)
 Data that is passed in type parameters is (usually) handled at compile-time,
 rather than at run-time. In certain cases this can lead to
 better performance.
-For this reason, some functions accept "value type" arguments, `Val{X}()`,
+For this reason, some functions accept [value type](https://docs.julialang.org/en/v1/manual/types/index.html#%22Value-types%22-1) arguments, `Val{X}()`,
 where `X` is an argument that is passed at compile-time.
-[manual/performance-tips.html#Types-with-values-as-parameters-1]
-[manual/types.html#"Value-types"-1]
 `Static` is an alternative to `Val` which is specifically
 designed to handle numbers.
 
@@ -22,7 +20,9 @@ The difference between `Val` and `Static` is that `Static` types
 promote and convert like their type parameters, so they can be used directly in
 arithmetic operations. (For example `static(1) + 1` equals `2`.)
 This makes it possible to use them with functions that were not specifically
-written to accept value arguments.
+written to accept value arguments, essentially forcing the Julia compiler to do
+[constant propagation](https://en.wikipedia.org/wiki/Constant_folding) in
+situations where it might not otherwise have done so.
 
 Under the surface, there are three `Static` datatypes: `StaticInteger`,
 `StaticReal`, and `StaticNumber`, subtypes of `Integer`, `Real` and `Number`
@@ -53,11 +53,10 @@ of `static(x)` in advance, a dynamic dispatch will happen at each function call.
 On the other hand, something like `f(x==0 ? static(0) : x, y)` will typically be
 fast. The construct `x==0 ? static(0) : x` will belong to `Union{typeof(x), static(0)}`,
 and Julia is able to dispatch efficiently on small type unions.
-A shorthand for this construct is `f(x ⩢ 0, y)`.
+Shorthands for this construct are `f(trystatic(x, 0), y)` and `f(x ⩢ 0, y)`.
 
 It is important not to make the set of `Static` numbers too large,
-as this can lead to a lot of compilation overhead. See:
-[manual/performance-tips.html#The-dangers-of-abusing-multiple-dispatch-(aka,-more-on-types-with-values-as-parameters)-1]
+as [this can lead to a lot of compilation overhead](https://docs.julialang.org/en/v1/manual/performance-tips/index.html#The-dangers-of-abusing-multiple-dispatch-(aka,-more-on-types-with-values-as-parameters)-1).
 
 There is no `StaticRational` datatype, but a `StaticReal` with a
 `Rational` type parameter will convert and promote like its parameter.

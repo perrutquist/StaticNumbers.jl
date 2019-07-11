@@ -37,6 +37,7 @@ efficient than `static(x)`.)
 @inline trystatic(x::Static, y::Static) = x #disambig
 @inline trystatic(x::Number) = x
 @inline trystatic(x::Number, y::Static) = x==y ? y : x
+@inline trystatic(x::Real, y::Static{NaN}) = isnan(x) ? y : x
 @inline trystatic(x::Number, y::Number) = trystatic(x, static(y))
 @inline trystatic(x::Number, y::Number, ys::Number...) = trystatic(trystatic(x, y), ys...)
 

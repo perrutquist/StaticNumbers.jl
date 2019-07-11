@@ -105,7 +105,17 @@ end
 @test 2 ⩢ (0, 1) === 2
 @test 2 ⩢ (0, 1, 2) === static(2)
 @test 2 ⩢ 0 ⩢ 1 ⩢ 2 === static(2)
+@test 1 ⩢ 0 ⩢ 1 ⩢ 2 === static(1)
 @test 2 ⩢ 0 ⩢ 1 === 2
+
+@test trystatic(0, NaN) === 0
+@test trystatic(0, static(NaN)) === 0
+@test trystatic(0.0, static(NaN)) === 0.0
+@test trystatic(NaN, NaN) === static(NaN)
+@test trystatic(NaN, static(NaN)) === static(NaN)
+@test trystatic(0.0/0.0, NaN) === static(NaN)
+@test 0.0 ⩢ NaN === 0.0
+@test NaN ⩢ NaN === static(NaN)
 
 @test trystatic(2, 1:3) == static(2)
 @test trystatic(4, 1:3) == 4
