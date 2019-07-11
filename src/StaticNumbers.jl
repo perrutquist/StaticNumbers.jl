@@ -71,6 +71,10 @@ Base.@pure static(x::Number) = StaticNumber(x)
 static(x::Irrational) = x # These are already defined by their type.
 Base.@pure static(x::Bool) = x ? StaticInteger{true}() : StaticInteger{false}() # help inference
 
+# There's no point crating a Val{Static{X}} since any function that would accept
+# it should treat it as equivalent to Val{X}.
+Base.@pure Base.Val(::Static{X}) where X = Val(X)
+
 # Functions that take only `Int` may be too restrictive.
 # The StaticOrInt type union is often a better choice.
 const StaticOrInt = Union{StaticInteger, Int}

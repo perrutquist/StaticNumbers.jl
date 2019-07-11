@@ -84,6 +84,11 @@ end
 @test one(static(2)) == 1
 @test oneunit(static(2)) == 1
 
+@test Val(static(false)) === Val(false)
+@test Val(static(1)) === Val(1)
+@test Val(static(3.1)) === Val(3.1)
+@test Val(static(3+im)) === Val(3+im)
+
 @test sprint(show, static(1)) == "static(1)"
 @test sprint(show, static(1//2)) == "static(1//2)"
 @test sprint(show, static(0.5)) == "static(0.5)"
