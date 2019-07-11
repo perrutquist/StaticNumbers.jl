@@ -69,6 +69,7 @@ Base.@pure static(x::Integer) = StaticInteger(x)
 Base.@pure static(x::Real) = StaticReal(x)
 Base.@pure static(x::Number) = StaticNumber(x)
 static(x::Irrational) = x # These are already defined by their type.
+Base.@pure static(x::Bool) = x ? StaticInteger{true}() : StaticInteger{false}() # help inference
 
 # Functions that take only `Int` may be too restrictive.
 # The StaticOrInt type union is often a better choice.
