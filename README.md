@@ -9,9 +9,8 @@ type parameter. These are referred to as `StaticNumber`s. (The word
 that the number is constant at runtime.)
 
 Data that is passed in type parameters is (usually) handled at compile-time,
-rather than at run-time. In certain cases this can lead to
-better performance.
-For this reason, some functions accept [value type](https://docs.julialang.org/en/v1/manual/types/index.html#%22Value-types%22-1) arguments, `Val{X}()`,
+rather than at run-time. In certain cases this can lead to better performance.
+For this reason, some functions accept [value type](https://docs.julialang.org/en/v1/manual/types/index.html#%22Value-types%22-1) arguments, `Val{X}`,
 where `X` is an argument that is passed at compile-time.
 `Static` is an alternative to `Val` which is specifically
 designed to handle numbers.
@@ -23,7 +22,7 @@ This makes it possible to use them with functions that were not specifically
 written to accept value arguments, essentially forcing the Julia compiler to do
 [constant propagation](https://en.wikipedia.org/wiki/Constant_folding) in
 situations where it might not otherwise have done so. For example, we can
-abuse it to make the compiler compute the 20:th Fibonacci number recursively:
+abuse it to make the compiler compute the 20:th Fibonacci number:
 ```julia
 julia> using StaticNumbers
 
@@ -38,6 +37,8 @@ top:
   ret i64 6765
 }
 ```
+(in the process, the compiler builds a [memoization](https://en.wikipedia.org/wiki/Memoization)
+table of the first 20 Fibonacci numbers as part of the dispatch table.)
 
 Under the surface, there are three `Static` datatypes: `StaticInteger`,
 `StaticReal`, and `StaticNumber`, subtypes of `Integer`, `Real` and `Number`
@@ -45,7 +46,7 @@ respectively. The `Union` type `Static` can be used to refer to them all.
 For brevity, all three types are displayed as `static(X)`, and it is also
 recommended to create them using this syntax.
 
-Note: At the moment, the type union is names `Static`, while the function
+Note: At the moment, the type union is named `Static`, while the function
 that creates static variables is named `static`.
 
 By default, any operation on a `Static` will result in a non-`Static` type.
