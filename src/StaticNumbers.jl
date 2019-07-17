@@ -1,11 +1,14 @@
 module StaticNumbers
 
-# TODO: This module should be renamed StaticNumbers, and the word `static`
-# replaced by `static` everywhere.
+using Requires
 
 export Static, static,
        StaticBool, StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
        @staticnumbers, ofstatictype
+
+function __init__()
+    @require StaticArrays="90137ffa-7385-5640-81b9-e52037218182" include("StaticArrays_glue.jl")
+end
 
 const StaticError = ErrorException("Illegal type parameter for Static.")
 

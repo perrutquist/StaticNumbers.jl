@@ -37,7 +37,7 @@ top:
   ret i64 6765
 }
 ```
-(in the process, the compiler builds a [memoization](https://en.wikipedia.org/wiki/Memoization)
+(In the process, the compiler builds a [memoization](https://en.wikipedia.org/wiki/Memoization)
 table of the first 20 Fibonacci numbers as part of the dispatch table.)
 
 Under the surface, there are three `Static` datatypes: `StaticInteger`,
