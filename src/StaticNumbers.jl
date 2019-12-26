@@ -1,6 +1,7 @@
 module StaticNumbers
 
 using Requires
+import Base.Broadcast: broadcasted, DefaultArrayStyle
 
 export Static, static,
        StaticBool, StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,

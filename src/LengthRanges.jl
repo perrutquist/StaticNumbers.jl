@@ -96,6 +96,7 @@ const LengthRange{T,Z,S,L} = Union{LengthStepRange{T,Z,S,L}, LengthUnitRange{T,Z
 #LengthRange{T,Z,StaticInteger{1},L}() where {T, Z<:Static, L<:StaticInteger} =
 #    LengthUnitRange{T,Z,L}(Z(), L())
 
+LengthRange(r::LengthRange) = r
 LengthRange(r::StepRange) = LengthStepRange(r)
 LengthStepRange(r::StepRange) = LengthStepRange(first(r)-step(r), step(r), length(r))
 LengthRange(r::AbstractUnitRange) = LengthUnitRange(r)
@@ -158,13 +159,13 @@ end
 staticlength(r::StepRange) = LengthStepRange(zeroth(r), step(r), static(length(r)))
 staticlength(r::UnitRange) = LengthUnitRange(zeroth(r), static(length(r)))
 
-function Base.show(io::IO, r::LengthRange{<:Integer, <:Integer, <:Integer, <:StaticInteger})
-    print(io, "staticlength(", first(r), ":")
-    step(r) == 1 || print(io, step(r), ":")
-    print(io, last(r), ")")
+function Base.show(io::IO, r::LengthRange)
+    length(r) isa StaticInteger && print(io, "staticlength(")
+    print(io, first(r), ":")
+    step(r) == 1 || print(io, step(r)+0, ":")
+    print(io, last(r))
+    length(r) isa StaticInteger && print(io, ")")
 end
-
-import Base.Broadcast: broadcasted, DefaultArrayStyle
 
 broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Number, r::LengthStepRange) = LengthStepRange(a+r.zeroth, r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthStepRange, a::Number) = LengthStepRange(a+r.zeroth, r.step, r.length)
@@ -187,3 +188,16 @@ broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 
 @inline Base.eachindex(r::LengthRange{<:Any, <:Any, <:Any, <:StaticInteger}) =
     StaticOneTo(r.length)
+
+# Creating a range from two (or three) static integers, e.g. static(2):static(3)
+# will return a LengthUnitRange (or LengthStepRange) using different static
+# numbers (zeroth and length).
+# This is an exception to the rule that we don't create new static nubmers
+# unless the user asks for it explicitly.
+@inline Base.:(:)(a::StaticInteger, b::StaticInteger) = LengthUnitRange(static(a-1), static(b-a+1))
+@inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
+
+# Indexing tuples with static length ranges in a type-stable way
+function Base.getindex(t::Tuple, r::LengthRange{<:Integer,<:Integer,<:Integer,<:StaticInteger})
+    ntuple(i -> t[r[i]], length(r))
+end

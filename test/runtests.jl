@@ -176,6 +176,7 @@ r = LengthStepRange(1, 2, static(3))
 @test typeof(7 .+ 5 .* r) == typeof(r)
 @test typeof(r .* 5 .+ 7) == typeof(r)
 @test all( (7:3:100)[r] .== (7:3:100)[3:2:7] )
+@test LengthRange(r) == r
 
 @test !(static(false)) === true
 @test !(static(true)) === false
@@ -288,3 +289,15 @@ end
 
 x = static(3)
 @test StaticNumbers.@tostatic(x, 0, 0) === static(3)
+
+# Test Tuple indexing
+for t in ((1,2,3,4), (1, 2.0, 3//1, 4.0f0))
+    @test t[static(2)] === t[2]
+    Test.@inferred t[static(2)]
+    @test t[static(2):static(3)] === t[2:3]
+    Test.@inferred t[static(2):static(3)]
+    @test t[static(2):static(2):static(4)] === t[2:2:4]
+    Test.@inferred t[static(2):static(2):static(4)]
+    @test t[static(1):static(2):static(3)] === t[1:2:3]
+    Test.@inferred t[static(1):static(2):static(2)]
+end
