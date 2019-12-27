@@ -5,7 +5,7 @@ import Base.Broadcast: broadcasted, DefaultArrayStyle
 
 export Static, static,
        StaticBool, StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
-       @staticnumbers, ofstatictype
+       @staticnumbers, @generate_static_methods, ofstatictype
 
 function __init__()
     @require StaticArrays="90137ffa-7385-5640-81b9-e52037218182" include("StaticArrays_glue.jl")
@@ -225,7 +225,7 @@ Base.:/(::StaticNumber{X}, y::Real) where {X} = X/y
 Base.:*(::StaticNumber{X}, y::Real) where {X} = X*y
 Base.:*(x::Real, ::StaticNumber{Y}) where {Y} = x*Y
 
-include("macros.jl")
+include("generate_static_methods.jl")
 
 include("LengthRanges.jl")
 

@@ -1,4 +1,3 @@
-
 """
 Create an expression a method for `Static` input to `fun` if the result
 is among the `targets`
@@ -74,7 +73,7 @@ function genstaticmethods2(funs, args, targets)
 end
 
 """
-@staticnumbers numbers 1argfuns 2argfuns
+@generate_static_methods numbers 1argfuns 2argfuns
 
 This macro creates methods that return `Static` numbers when
 functions are called with only `Static` arguments.
@@ -87,7 +86,7 @@ be considered as results, but not as inputs.
 
 Example:
 ```
-@staticnumbers (0, 1) (sin, cos) (+, -)
+@generate_static_methods (0, 1) (sin, cos) (+, -)
 ```
 will create all the following method definitions:
 ```
@@ -103,6 +102,18 @@ cos(::StaticInteger{0}) = StaticInteger{1}()
 (Note: The macro will run in the local scope. Functions from `Base`
 must be imported before they can be extended.)
 """
+macro generate_static_methods(args::Expr, funs1::Expr, funs2::Expr, targets::Expr=:(()))
+    args.head == :tuple || error("Expected a Tuple of numbers")
+    funs1.head == :tuple || error("Expected a Tuple of 1-arg functions")
+    funs2.head == :tuple || error("Expected a Tuple of 2-arg functions")
+    targets.head == :tuple || error("Expected a Tuple of target numbers")
+    return esc(Expr(:block,vcat(
+       genstaticmethods1(funs1.args, args.args, targets.args),
+       genstaticmethods2(funs2.args, args.args, targets.args)
+       )...))
+end
+
+# We renamed staticnumbers -> generate_static_methods, but keep the old macro for a short while.
 macro staticnumbers(args::Expr, funs1::Expr, funs2::Expr, targets::Expr=:(()))
     args.head == :tuple || error("Expected a Tuple of numbers")
     funs1.head == :tuple || error("Expected a Tuple of 1-arg functions")

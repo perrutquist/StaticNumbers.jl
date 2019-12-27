@@ -56,7 +56,7 @@ all arguments are static. For example, `maybe_static(+, static(2), static(2))`
 will return `static(4)`. (Julia is often able to infer the return type.)
 
 It is of course also possible to overload methods to return `Static` for `Static`
-inputs. The `@staticnumbers` macro can be used on a small set of `Static` numbers
+inputs. The `@generate_static_methods` macro can be used on a small set of `Static` numbers
 to make certain operations preserve the `Static` type when possible.
 
 When creating `Static` numbers, it is important to consider whether the type

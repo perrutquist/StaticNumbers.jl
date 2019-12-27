@@ -136,6 +136,12 @@ const StaticOneTo{N} = LengthUnitRange{Int, StaticInteger{0}, StaticInteger{N}}
 Base.@pure StaticOneTo(n::Integer) = StaticOneTo{n}()
 Base.@pure StaticOneTo(::StaticInteger{N}) where N = StaticOneTo{N}()
 
+@inline StaticOneTo(r::Base.OneTo) = StaticOneTo(length(r))
+@inline function StaticOneTo(r::AbstractUnitRange{<:Integer})
+    first(r) == 1 || throw(InexactError(:StaticOneTo, StaticOneTo, r))
+    return StaticOneTo(length(r))
+end
+
 @inline Base.OneTo(n::StaticInteger) = StaticOneTo(n)
 @inline Base.:(:)(a::StaticInteger{1}, b::StaticInteger) = StaticOneTo(b)
 
@@ -156,8 +162,9 @@ end
 """
 `staticlength(range)` converts to a range where the length is `Static`.
 """
-staticlength(r::StepRange) = LengthStepRange(zeroth(r), step(r), static(length(r)))
+staticlength(r::OrdinalRange) = LengthStepRange(zeroth(r), step(r), static(length(r)))
 staticlength(r::UnitRange) = LengthUnitRange(zeroth(r), static(length(r)))
+staticlength(r::Base.OneTo) = StaticOneTo(static(length(r)))
 
 function Base.show(io::IO, r::LengthRange)
     length(r) isa StaticInteger && print(io, "staticlength(")
