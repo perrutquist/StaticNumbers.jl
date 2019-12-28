@@ -231,4 +231,6 @@ include("LengthRanges.jl")
 
 include("trystatic.jl")
 
+include("stat_macro.jl")
+
 end # module

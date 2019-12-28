@@ -326,4 +326,14 @@ end
     @test LengthUnitRange(2:4) == 2:4
 end
 
+@testset "@stat macro" begin
+    @test @stat(2+2) === static(4)
+    x = 2
+    x2 = @stat x + 2
+    @test x2 === 4
+    y = static(2)
+    y2 = @stat y + 2
+    @test y2 === static(4)
+end
+
 include("StaticArrays_test.jl")

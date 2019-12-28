@@ -1,13 +1,4 @@
-export maybe_static, trystatic, tostatic, ⩢, staticmod
-
-"""
-    maybe_static(f, args...)
-
-Returns `static(f(args...))`, if all of args are `Static`. If any of the args
-is not `Static`, then `f(args...)` is returned unchanged.
-"""
-@inline maybe_static(f::F, args...) where {F} = f(args...)
-@inline maybe_static(f::F, args::Static...) where {F} = static(f(args...))
+export trystatic, tostatic, ⩢, staticmod
 
 # TODO: tryconvert(T, x) should return convert(T, x) unless that would throw
 # an error. tryconvert(StaticInteger{0}, x) would be equivalent to the current
