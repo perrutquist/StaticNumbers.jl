@@ -268,11 +268,14 @@ end
     @test all(staticlength(3:4).^2 == (3:4).^2)
 
     @test Unsigned(static(2)) === Unsigned(2)
+end
 
-    # Test with a new numeric type
-    struct MyType <: Real
-        x::Float64
-    end
+# Test with a new numeric type
+struct MyType <: Real
+    x::Float64
+end
+
+@testset "various II" begin
     @test MyType(static(3)) === MyType(3)
     @test MyType(static(3.0)) === MyType(3.0)
 
