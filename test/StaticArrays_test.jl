@@ -12,15 +12,32 @@ using StaticArrays
     @test size(m) === (3, 2)
 end
 
-@testset "static length" begin
+@testset "static length indexing" begin
     @test SOneTo(StaticOneTo(3)) === SOneTo(3)
     @test StaticOneTo(SOneTo(3)) === StaticOneTo(3)
     @test StaticArrays.SUnitRange(LengthUnitRange(3:4)) === StaticArrays.SUnitRange(3,4)
     @test LengthUnitRange(StaticArrays.SUnitRange(3,4)) === static(3):static(4)
     @test staticlength(StaticArrays.SUnitRange(3,4)) === static(3):static(4)
 
-    # TODO:
-    # for x in ([1, 2, 3, 4], @MVector([1, 2, 3, 4]))
-    #     @test x[static(1):static(2)] === @MVector([1,2])
-    # end
+    for x in ([1, 2, 3, 4], @MVector([1, 2, 3, 4]))
+        xi = x[static(1):static(2)]
+        v = @MVector([1,2])
+        @test xi == v
+        @test typeof(xi) == typeof(v)
+        xi = @stat x[1:2]
+        @test xi == v
+        @test typeof(xi) == typeof(v)
+
+        # Test of trystatic(lastindex, x)
+        xi = @stat x[1:end-2]
+        @test xi == v
+        @test typeof(xi) == typeof(v)
+    end
+
+    for x in (@SVector([1, 2, 3, 4]), )
+        xi = x[static(1):static(2)]
+        v = @SVector([1,2])
+        @test xi == v
+        @test typeof(xi) == typeof(v)
+    end
 end

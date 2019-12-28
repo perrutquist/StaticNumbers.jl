@@ -1,4 +1,4 @@
-import .StaticArrays: StaticArray, MArray, SOneTo, SUnitRange, Size, index_size, index_sizes, StaticIndexing, _ind
+import .StaticArrays: StaticArray, MArray, SArray, SVector, MVector, SOneTo, SUnitRange, Size, index_size, index_sizes, StaticIndexing, _ind
 
 import Base: Matrix, Array
 
@@ -19,5 +19,18 @@ LengthUnitRange(::SUnitRange{Start, L}) where {Start, L} = LengthUnitRange(stati
 staticlength(r::SUnitRange) = LengthUnitRange(r)
 
 Size(::LengthRange{T,Z,S,StaticInteger{L}}) where {T,Z,S,L} = Size(Int(L))
-Size(::LengthUnitRange{T,Z,StaticInteger{L}}) where {T,Z,L} = Size(Int(L))
 Size(::StaticInteger{L}) where {L} = Size(Int(L))
+
+for AT in (Array, AbstractArray), RT in (LengthStepRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}, LengthUnitRange{T,Z,StaticInteger{L}} where {T,Z,L})
+    Base.getindex(A::AT, r::RT) = MVector(ntuple(i -> A[r[i]], length(r)))
+end
+
+for RT in (LengthStepRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}, LengthUnitRange{T,Z,StaticInteger{L}} where {T,Z,L})
+    Base.getindex(A::SArray, r::RT) = SVector(ntuple(i -> A[r[i]], length(r)))
+end
+
+# Allow "end" to become static when indexing into static arrays
+trystatic(::typeof(lastindex), A::StaticArray) = static(lastindex(A))
+trystatic(::typeof(lastindex), A::StaticArray, d::StaticInteger) = static(lastindex(A, i))
+
+# TODO: Interface to StaticArrays for multi-dimensional indexing
