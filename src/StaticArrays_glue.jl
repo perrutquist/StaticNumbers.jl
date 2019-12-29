@@ -31,16 +31,13 @@ for RT in (LengthStepRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}, LengthUnitRa
 end
 
 # Allow "end" to become static when indexing into static arrays
-maybe_static(::typeof(lastindex), A::StaticArray) = static(lastindex(A))
-maybe_static(::typeof(lastindex), A::StaticArray, d::StaticInteger) = static(lastindex(A, i))
+@inline maybe_static(::typeof(lastindex), A::StaticArray) = static(lastindex(A))
+@inline maybe_static(::typeof(lastindex), A::StaticArray, d::StaticInteger) = static(lastindex(A, i))
 
-maybe_static(::typeof(size), A::StaticArray) = map(static, size(A))
-maybe_static(::typeof(size), A::StaticArray, d::Integer) = static(size(A, d))
+@inline maybe_static(::typeof(size), A::StaticArray) = map(static, size(A))
+@inline maybe_static(::typeof(size), A::StaticArray, d::Integer) = static(size(A, d))
 
-SVector(g::Base.Generator{StaticLengthRange,F}) where {F} = SVector(Tuple(g))
-MVector(g::Base.Generator{StaticLengthRange,F}) where {F} = MVector(Tuple(g))
-
-SVector(iter::StaticLengthRange) = SVector(Tuple(iter))
-MVector(iter::StaticLengthRange) = MVector(Tuple(iter))
+@inline (::Type{SA})(g::Base.Generator{<:StaticLengthRange,F}) where {SA<:StaticArray, F} = SA(Tuple(g))
+@inline (::Type{SA})(iter::StaticLengthRange) where {SA<:StaticArray} = SA(Tuple(iter))
 
 # TODO: Interface to StaticArrays for multi-dimensional indexing

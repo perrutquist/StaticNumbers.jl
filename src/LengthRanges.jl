@@ -208,6 +208,6 @@ const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 
 Base.getindex(t::Tuple, r::StaticLengthRange) = ntuple(i -> t[r[i]], length(r))
 
-Base.Tuple(iter::StaticLengthRange) = ntuple(i->iter[i], length(g.iter))
+Base.Tuple(iter::StaticLengthRange) = ntuple(i->iter[i], length(iter))
 
-Base.Tuple(g::Base.Generator{StaticLengthRange,F}) where {F} = ntuple(i->g.f(g.iter[i]), length(g.iter))
+Base.Tuple(g::Base.Generator{<:StaticLengthRange,F}) where {F} = ntuple(i->g.f(g.iter[i]), length(g.iter))

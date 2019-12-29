@@ -16,13 +16,13 @@ functions under the macro.
     y isa Number && !(y isa Bool) ? static(y) : y
 end
 
-maybe_static(::typeof(nfields), t) = static(nfields(t))
+@inline maybe_static(::typeof(nfields), t) = static(nfields(t))
 
-maybe_static(::typeof(firstindex), T::Tuple) = static(firstindex(T))
-maybe_static(::typeof(lastindex), T::Tuple) = static(lastindex(T))
-maybe_static(::typeof(length), T::Tuple) = static(length(T))
+@inline maybe_static(::typeof(firstindex), T::Tuple) = static(firstindex(T))
+@inline maybe_static(::typeof(lastindex), T::Tuple) = static(lastindex(T))
+@inline maybe_static(::typeof(length), T::Tuple) = static(length(T))
 
-maybe_static(::typeof(axes), T::Tuple) = StaticOneTo(length(T))
+@inline maybe_static(::typeof(axes), T::Tuple) = StaticOneTo(length(T))
 
 """
 Turn all constants in an expression into `static` and all
