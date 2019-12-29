@@ -39,5 +39,13 @@ end
         v = @SVector([1,2])
         @test xi == v
         @test typeof(xi) == typeof(v)
+
+        f(t) = @stat t[2:end-1]
+        @test f(x) === SVector((2,3))
+        Test.@inferred f((1,2,3,4))
+
+        @stat g(t,k) = t[k .+ (0:1)]
+        @test g(x, 2) === SVector((2,3))
+        Test.@inferred g((1,2,3,4), 2)
     end
 end

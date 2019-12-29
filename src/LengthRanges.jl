@@ -204,7 +204,10 @@ broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 @inline Base.:(:)(a::StaticInteger, b::StaticInteger) = LengthUnitRange(static(a-1), static(b-a+1))
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
 
-# Indexing tuples with static length ranges in a type-stable way
-function Base.getindex(t::Tuple, r::LengthRange{<:Integer,<:Integer,<:Integer,<:StaticInteger})
-    ntuple(i -> t[r[i]], length(r))
-end
+const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
+
+Base.getindex(t::Tuple, r::StaticLengthRange) = ntuple(i -> t[r[i]], length(r))
+
+Base.Tuple(iter::StaticLengthRange) = ntuple(i->iter[i], length(g.iter))
+
+Base.Tuple(g::Base.Generator{StaticLengthRange,F}) where {F} = ntuple(i->g.f(g.iter[i]), length(g.iter))

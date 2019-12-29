@@ -337,6 +337,22 @@ end
     y = static(2)
     y2 = @stat y + 2
     @test y2 === static(4)
+
+    T = (1,2,3,4)
+    A = [1,2,3,4]
+    @test @stat(length(A)) === 4
+    @test @stat(length(T)) === static(4)
+    @test @stat(firstindex(T)) === static(1)
+    @test @stat(lastindex(A)) === 4
+    @test @stat(lastindex(T)) === static(4)
+
+    f(t) = @stat t[2:end-1]
+    @test f(T) === (2,3)
+    Test.@inferred f((1,2,3,4))
+
+    @stat g(t,k) = t[k .+ (0:1)]
+    @test g(T, 2) === (2,3)
+    Test.@inferred g((1,2,3,4), 2)
 end
 
 include("StaticArrays_test.jl")

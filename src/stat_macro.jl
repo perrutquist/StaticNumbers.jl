@@ -16,6 +16,14 @@ functions under the macro.
     y isa Number && !(y isa Bool) ? static(y) : y
 end
 
+maybe_static(::typeof(nfields), t) = static(nfields(t))
+
+maybe_static(::typeof(firstindex), T::Tuple) = static(firstindex(T))
+maybe_static(::typeof(lastindex), T::Tuple) = static(lastindex(T))
+maybe_static(::typeof(length), T::Tuple) = static(length(T))
+
+maybe_static(::typeof(axes), T::Tuple) = StaticOneTo(length(T))
+
 """
 Turn all constants in an expression into `static` and all
 function calls into `trystatic`.
@@ -25,8 +33,16 @@ statify(x::Number) = :( static($x) )
 statify(s::Symbol) = s == :end ? :( static($s) ) : s
 function statify(ex::Expr)
     if ex.head == :call
-        Expr(ex.head, :maybe_static, map(statify, ex.args)...)
-    elseif ex.head ∈ (:if, :&&, :||)
+        if first(string(ex.args[1])) == '.'  #for example: .+
+            # TODO: We should handle breadcasted maybe_static.
+            # Expr(:., :maybe_static, Expr(:tuple, Symbol(string(ex.args[1])[2:end]), map(statify, ex.args[2:end])...))
+            Expr(ex.head, map(statify, ex.args)...)
+        else
+            Expr(ex.head, :maybe_static, map(statify, ex.args)...)
+        end
+    #elseif ex.head == :.
+    #    Expr(:., :maybe_static, Expr(:tuple, ex.args[1], map(statify, ex.args[2].args)...))
+    elseif ex.head ∈ (:if, :&&, :||) || ex.head == :(=) && ex.args[1].head == :call
         Expr(ex.head, ex.args[1], map(statify, ex.args[2:end])...)
     else
         Expr(ex.head, map(statify, ex.args)...)
