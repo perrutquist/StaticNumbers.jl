@@ -61,6 +61,10 @@ LengthUnitRange(z::Z, l::L) where {Z, L<:Integer} =
 LengthUnitRange{T,Z,L}() where {T, Z<:Static, L<:StaticInteger} =
     LengthUnitRange{T, Z, L}(Z(), L())
 
+# Avoid creating a LengthStepRange that could have been a LengthUnitRange
+LengthStepRange{T, Z, S, L}(z::Z, ::S, l::L) where {T, Z, S<:StaticInteger{1}, L<:Integer} =
+    LengthUnitRange{T,Z,L}(z, l)
+
 """
 `LengthRange(zeroth, step, length)`
 
@@ -166,8 +170,17 @@ staticlength(r::OrdinalRange) = LengthStepRange(zeroth(r), step(r), static(lengt
 staticlength(r::UnitRange) = LengthUnitRange(zeroth(r), static(length(r)))
 staticlength(r::Base.OneTo) = StaticOneTo(static(length(r)))
 
+"""
+`static(range)` converts to a range where all aspects are `Static`.
+"""
+static(r::OrdinalRange) = LengthStepRange(static(zeroth(r)), static(step(r)), static(length(r)))
+static(r::UnitRange) = LengthUnitRange(static(zeroth(r)), static(length(r)))
+static(r::Base.OneTo) = StaticOneTo(static(length(r)))
+
 function Base.show(io::IO, r::LengthRange)
-    length(r) isa StaticInteger && print(io, "staticlength(")
+    if length(r) isa StaticInteger
+        print(io, zeroth(r) isa Static && step(r) isa Static ? "static(" : "staticlength(" )
+    end
     print(io, first(r), ":")
     step(r) == 1 || print(io, step(r)+0, ":")
     print(io, last(r))
@@ -201,8 +214,15 @@ broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 # numbers (zeroth and length).
 # This is an exception to the rule that we don't create new static nubmers
 # unless the user asks for it explicitly.
-@inline Base.:(:)(a::StaticInteger, b::StaticInteger) = LengthUnitRange(static(a-1), static(b-a+1))
+@inline Base.:(:)(a::Static, b::Static) = a:static(1):b
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
+
+# NOTE: This does not use Base.twiceprecision because that type is not <: Real. Will lead to some loss of precision, unfortunately.
+# TODO: Fix infinte iterations
+# @inline function Base.:(:)(a::Static{A}, s::Static{S}, b::Static{B}) where {A,S,B}
+#     r = A:S:B
+#     LengthStepRange(static(zeroth(r)), s, static(length(r)))
+# end
 
 const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 

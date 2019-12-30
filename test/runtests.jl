@@ -93,12 +93,19 @@ end
     @test Val(static(1)) === Val(1)
     @test Val(static(3.1)) === Val(3.1)
     @test Val(static(3+im)) === Val(3+im)
+
+    @test static(1):static(3) isa LengthUnitRange{Int64,<:StaticInteger,<:StaticInteger}
+    @test static(1:3) === static(1):static(3)
+    @test StaticOneTo(3) === static(1):static(3)
+    @test static(1):static(3) === @stat 1:3
 end
 
 @testset "show" begin
     @test sprint(show, static(1)) == "static(1)"
     @test sprint(show, static(1//2)) == "static(1//2)"
     @test sprint(show, static(0.5)) == "static(0.5)"
+    @test sprint(show, static(1:2:3)) == "static(1:2:3)"
+    @test sprint(show, static(2:2:3)) == "static(2:2:2)"
 end
 
 @testset "trystatic" begin
