@@ -189,11 +189,12 @@ end
 # ...where simplifications are possible:
 Base.:&(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
 Base.:|(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
-Base.:xor(::StaticInteger{X}, ::StaticInteger{X}) where {X} = zero(X)
+Base.xor(::StaticInteger{X}, ::StaticInteger{X}) where {X} = zero(X)
 Base.:<(::Static{X}, ::Static{X}) where {X} = false
 Base.:<=(::Static{X}, ::Static{X}) where {X} = true
-Base.:rem(::Static{X}, ::Static{X}) where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? oftype(X, NaN) : throw(DivideError()) : zero(X)
-Base.:mod(::Static{X}, ::Static{X}) where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? oftype(X, NaN) : throw(DivideError()) : zero(X)
+Base.rem(::Static{X}, ::Static{X}) where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? oftype(X, NaN) : throw(DivideError()) : zero(X)
+Base.mod(::Static{X}, ::Static{X}) where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? oftype(X, NaN) : throw(DivideError()) : zero(X)
+Base.div(::Static{X}, ::Static{X}) where {X} = static(one(X)) # Needed for Julia > 1.3
 
 # Three-argument function that gives no_op_err
 fma(x::Static{X}, y::Static{X}, z::Static{X}) where {X} = fma(X,X,X)
