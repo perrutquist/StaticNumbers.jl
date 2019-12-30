@@ -114,10 +114,11 @@ LengthUnitRange(r::UnitRange) = LengthUnitRange(first(r)-step(r), length(r))
 @inline Base.unsafe_length(r::LengthRange) = r.length
 
 # `first` and `last` return elements of the array, so are of type T, never `Static`.
+# To (possibly) get a static number, one should use `@stat first(r)`
 @inline Base.first(r::LengthRange{T}) where {T} = convert(T, r.zeroth + r.step)
 @inline Base.last(r::LengthRange{T}) where {T} = convert(T, r.zeroth + r.step*r.length)
 
-@inline function Base.getindex(r::LengthRange{T}, i::Integer)::T where {T}
+@inline function Base.getindex(r::LengthRange{T}, i::Integer) where {T}
     @boundscheck checkbounds(r, i)
     convert(T, r.zeroth + i*r.step)
 end
@@ -128,6 +129,11 @@ end
 end
 
 @inline function Base.getindex(r::AbstractUnitRange{T}, s::LengthUnitRange{<:Integer}) where {T}
+    @boundscheck checkbounds(r, s)
+    LengthUnitRange{T}(zeroth(r) + zeroth(s)*step(r), length(s))
+end
+
+@inline function Base.getindex(r::AbstractUnitRange{T}, s::LengthUnitRange{TS,Z,StaticInteger{L}}) where {T,TS<:Integer,Z,L} #disambig
     @boundscheck checkbounds(r, s)
     LengthUnitRange{T}(zeroth(r) + zeroth(s)*step(r), length(s))
 end
@@ -206,9 +212,6 @@ Base.:*(r::LengthRange, a::Number) = a*r
 broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::Number,r::LengthRange) = a*r
 broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 
-@inline Base.eachindex(r::LengthRange{<:Any, <:Any, <:Any, <:StaticInteger}) =
-    StaticOneTo(r.length)
-
 # Creating a range from two (or three) static integers, e.g. static(2):static(3)
 # will return a LengthUnitRange (or LengthStepRange) using different static
 # numbers (zeroth and length).
@@ -226,8 +229,10 @@ broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 
 const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 
-Base.getindex(t::Tuple, r::StaticLengthRange) = ntuple(i -> t[r[i]], length(r))
+@inline Base.eachindex(::StaticLengthRange) = StaticOneTo(r.length)
 
-Base.Tuple(iter::StaticLengthRange) = ntuple(i->iter[i], length(iter))
+@inline Base.getindex(t::Tuple, r::StaticLengthRange) = ntuple(i -> t[r[i]], length(r))
 
-Base.Tuple(g::Base.Generator{<:StaticLengthRange,F}) where {F} = ntuple(i->g.f(g.iter[i]), length(g.iter))
+@inline Base.Tuple(iter::StaticLengthRange) = ntuple(i->iter[i], length(iter))
+
+@inline Base.Tuple(g::Base.Generator{<:StaticLengthRange,F}) where {F} = ntuple(i->g.f(g.iter[i]), length(g.iter))

@@ -44,6 +44,8 @@ function statify(ex::Expr)
     #    Expr(:., :maybe_static, Expr(:tuple, ex.args[1], map(statify, ex.args[2].args)...))
     elseif ex.head ∈ (:if, :&&, :||) || ex.head == :(=) && ex.args[1].head == :call
         Expr(ex.head, ex.args[1], map(statify, ex.args[2:end])...)
+    elseif ex.head == :ref
+        Expr(ex.head, :( StaticNumbers.maybe_wrap($(statify(ex.args[1]))) ), map(statify, ex.args[2:end])...)
     else
         Expr(ex.head, map(statify, ex.args)...)
     end
@@ -52,4 +54,30 @@ end
 # The name @static was taken!
 macro stat(ex)
     esc(statify(ex))
+end
+
+"A wrapper type applied by the @stat macro"
+struct MaybeStatic{T}
+    parent::T
+end
+
+maybe_wrap(x) = x
+maybe_wrap(x::LengthRange{T,Z,S,L}) where {T,Z<:StaticInteger,S<:StaticInteger,L} = MaybeStatic(x)
+
+@inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::StaticInteger) = static(r.parent[i])
+@inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::LengthRange) = maybe_wrap(getindex(r.parent, i))
+@inline Base.getindex(r::MaybeStatic, args...) = getindex(r.parent, args...)
+@inline Base.step(r::MaybeStatic) = step(r.parent)
+@inline Base.length(r::MaybeStatic) = length(r.parent)
+@inline Base.unsafe_length(r::MaybeStatic) = length(r.parent)
+@inline Base.first(r::MaybeStatic) = maybe_static(first, r.parent)
+@inline Base.last(r::MaybeStatic) = maybe_static(last, r.parent)
+
+# Some functions need pass-through of the @stat macro...
+@inline maybe_static(::typeof(first), r::LengthRange) = @stat r.zeroth + r.step
+@inline maybe_static(::typeof(last), r::LengthRange) = @stat r.zeroth + r.step * r.length
+
+@inline function maybe_static(getindex, r::LengthRange, i::StaticInteger)
+    @boundscheck checkbounds(r, i)
+    @stat r.zeroth + i*r.step
 end

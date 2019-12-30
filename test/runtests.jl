@@ -353,6 +353,18 @@ end
     @test @stat(lastindex(A)) === 4
     @test @stat(lastindex(T)) === static(4)
 
+    r = @stat 2:5
+    @test r[1] === first(r)
+    @test first(r) === 2
+    @test static(2) === @stat first(r)
+    @test r[end] === last(r)
+    @test last(r) === 5
+    @test static(5) === @stat last(r)
+    @test static(3) === @stat r[2]
+    i = 2
+    @test 3 === @stat r[i]
+    #@test static(3:4) === @stat (1:5)[3:4] # TODO
+
     f(t) = @stat t[2:end-1]
     @test f(T) === (2,3)
     Test.@inferred f((1,2,3,4))
@@ -360,6 +372,12 @@ end
     @stat g(t,k) = t[k .+ (0:1)]
     @test g(T, 2) === (2,3)
     Test.@inferred g((1,2,3,4), 2)
+
+    @test @stat(first(2:3)) === static(2)
+    @test @stat(last(2:3)) === static(3)
+    @test static(2:3)[2] === 3
+    @test static(2:3)[static(2)] === 3
+    @test @stat((2:3)[2]) === static(3)
 end
 
 include("StaticArrays_test.jl")
