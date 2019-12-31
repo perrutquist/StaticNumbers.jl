@@ -1,14 +1,14 @@
 name = "StaticNumbers"
 uuid = "c5e4b96a-f99f-5557-8ed2-dc63ef9b5131"
 authors = ["Per Rutquist <per.rutquist@gmail.com>"]
-version = "0.3.0"
+version = "0.2.0"
 
 [deps]
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
-StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 julia = "0.7, 1"
+Requires = "1.0, 1"
 
 [extras]
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
