@@ -57,23 +57,24 @@ or literals. For example:
 ```julia
 i = 2
 s = static(2)
-s + s # returns 4
-@stat s + s # returns static(4)
-@stat s + 2 # also returns static(4)
-@stat s + i # returns 4, because i is not a static number
+s + s        # returns 4 - not static(4) even though s is static.
+@stat s + s  # returns static(4)
+@stat s + 2  # also returns static(4), since 2 is a literal
+@stat s + i  # returns 4, because i is not a static number
 ```
 
 If the `@stat` macro is used with pure (and relatively simple) functions, then the Julia
 compiler will be able to infer the return type, resulting in performant code.
 
-Static numbers can be used to create ranges with static lenght. Such ranges can be used to
+Static numbers can be used to create ranges with static length. Such ranges can be used to
 create Tuples in an efficient manner. For example `Tuple(i^2 for i in static(1):static(4))`
 is computed at compile time. For comparison, `Tuple(i^2 for i in 1:4)` is computed at
 runtime and the length of the tuple is not inferred (as of Julia 1.3.1).
 
 Indexing into tuples can also be a lot more efficient with static numbers. For example,
 if `t` is a `Tuple`, then `t[@stat 2:end-1]` will be fast, type stable and non-allocating,
-while t[2:end-1] is much less performant. (As of Julia 1.3.1, see [pull request 31138](https://github.com/JuliaLang/julia/pull/31138).)
+while t[2:end-1] is much less performant (as of Julia 1.3.1). (This is being addressed,
+see [pull request 31138](https://github.com/JuliaLang/julia/pull/31138).)
 
 When creating `Static` numbers, it is important to consider whether the type
 system will be able to work efficiently. For example, `f(static(x), y)` is
