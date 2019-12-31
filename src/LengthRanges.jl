@@ -219,6 +219,7 @@ broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 # unless the user asks for it explicitly.
 @inline Base.:(:)(a::Static, b::Static) = a:static(1):b
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
+@inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::Integer) = LengthStepRange(static(a-s), s, (b-a)÷s+1)
 
 # NOTE: This does not use Base.twiceprecision because that type is not <: Real. Will lead to some loss of precision, unfortunately.
 # TODO: Fix infinte iterations

@@ -98,6 +98,8 @@ end
     @test static(1:3) === static(1):static(3)
     @test StaticOneTo(3) === static(1):static(3)
     @test static(1):static(3) === @stat 1:3
+
+    @test static(1):static(2):5 isa LengthStepRange{Int64,StaticInteger{-1},StaticInteger{2},Int64}
 end
 
 @testset "show" begin
@@ -378,6 +380,17 @@ end
     @test static(2:3)[2] === 3
     @test static(2:3)[static(2)] === 3
     @test @stat((2:3)[2]) === static(3)
+end
+
+@testset "examples for doc" begin
+    i = 2
+    s = static(2)
+    @test 4 === s + s
+    @test static(4) === @stat s + s
+    @test static(4) === @stat s + 2
+    @test 4 === @stat s + i
+    @test (1, 4, 9, 16) === Tuple(i^2 for i in static(1):static(4))
+    Test.@inferred Tuple(i^2 for i in static(1):static(4))
 end
 
 include("StaticArrays_test.jl")

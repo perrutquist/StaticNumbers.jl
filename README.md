@@ -51,13 +51,29 @@ that creates static variables is named `static`.
 
 By default, any operation on a `Static` will result in a non-`Static` type.
 For example, `static(2)+static(2)` gives `4`, not `static(4)`.
-The function `maybe_static` makes the result of a computation `Static` when
-all arguments are static. For example, `maybe_static(+, static(2), static(2))`
-will return `static(4)`. (Julia is often able to infer the return type.)
 
-It is of course also possible to overload methods to return `Static` for `Static`
-inputs. The `@generate_static_methods` macro can be used on a small set of `Static` numbers
-to make certain operations preserve the `Static` type when possible.
+The macro `@stat` makes the result of a computation `Static` when all arguments are static
+or literals. For example:
+```julia
+i = 2
+s = static(2)
+s + s # returns 4
+@stat s + s # returns static(4)
+@stat s + 2 # also returns static(4)
+@stat s + i # returns 4, because i is not a static number
+```
+
+If the `@stat` macro is used with pure (and relatively simple) functions, then the Julia
+compiler will be able to infer the return type, resulting in performant code.
+
+Static numbers can be used to create ranges with static lenght. Such ranges can be used to
+create Tuples in an efficient manner. For example `Tuple(i^2 for i in static(1):static(4))`
+is computed at compile time. For comparison, `Tuple(i^2 for i in 1:4)` is computed at
+runtime and the length of the tuple is not inferred (as of Julia 1.3.1).
+
+Indexing into tuples can also be a lot more efficient with static numbers. For example,
+if `t` is a `Tuple`, then `t[@stat 2:end-1]` will be fast, type stable and non-allocating,
+while t[2:end-1] is much less performant. (As of Julia 1.3.1, see [pull request 31138](https://github.com/JuliaLang/julia/pull/31138).)
 
 When creating `Static` numbers, it is important to consider whether the type
 system will be able to work efficiently. For example, `f(static(x), y)` is
@@ -73,6 +89,7 @@ Shorthands for this construct are `f(trystatic(x, 0), y)` and `f(x ⩢ 0, y)`.
 
 It is important not to make the set of `Static` numbers too large,
 as [this can lead to a lot of compilation overhead](https://docs.julialang.org/en/v1/manual/performance-tips/index.html#The-dangers-of-abusing-multiple-dispatch-(aka,-more-on-types-with-values-as-parameters)-1).
+The `@stat` macro can be dangerous when used inside loops or in recursive functions.
 
 There is no `StaticRational` datatype, but a `StaticReal` with a
 `Rational` type parameter will convert and promote like its parameter.
