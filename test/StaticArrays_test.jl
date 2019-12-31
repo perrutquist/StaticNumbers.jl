@@ -59,4 +59,6 @@ end
     g(k) = SVector(i^2 for i in @stat 1:k)
     @test g(static(2)) === SA[1,4]
     Test.@inferred(g(static(2)))
+
+    @test SVector(i^2 for i in static(1):3) === SA[1, 4, 9]
 end

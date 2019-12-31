@@ -37,7 +37,7 @@ end
 @inline maybe_static(::typeof(size), A::StaticArray) = map(static, size(A))
 @inline maybe_static(::typeof(size), A::StaticArray, d::Integer) = static(size(A, d))
 
-@inline (::Type{SA})(g::Base.Generator{<:StaticLengthRange,F}) where {SA<:StaticArray, F} = SA(Tuple(g))
-@inline (::Type{SA})(iter::StaticLengthRange) where {SA<:StaticArray} = SA(Tuple(iter))
+@inline (::Type{SA})(g::Base.Generator{<:LengthRange,F}) where {SA<:StaticArray, F} = SA(Tuple(g))
+@inline (::Type{SA})(iter::LengthRange) where {SA<:StaticArray} = SA(Tuple(iter))
 
 # TODO: Interface to StaticArrays for multi-dimensional indexing

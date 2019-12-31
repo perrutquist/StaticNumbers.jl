@@ -217,7 +217,11 @@ broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 # numbers (zeroth and length).
 # This is an exception to the rule that we don't create new static nubmers
 # unless the user asks for it explicitly.
-@inline Base.:(:)(a::Static, b::Static) = a:static(1):b
+for S in (StaticInteger, StaticReal)
+    @inline Base.:(:)(a::S, b::Real) = a:static(1):b
+    @inline Base.:(:)(a::Real, b::S) = a:static(1):b
+    @inline Base.:(:)(a::S, b::S) = a:static(1):b
+end
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::Integer) = LengthStepRange(static(a-s), s, (b-a)÷s+1)
 
