@@ -14,6 +14,8 @@ using Test
 
     @test zero(static(1)) === 0
     @test zero(static(1.0)) === 0.0
+    @test zero(typeof(static(1))) === 0
+    @test zero(typeof(static(1.0))) === 0.0
 
     @test static(true) == true
     @test static(false) == false
@@ -122,6 +124,13 @@ end
     @test Base.promote_typeof(static(1), static(1)) === Int
 
     @test static(1):static(2):5 isa LengthStepRange{Int64,StaticInteger{-1},StaticInteger{2},Int64}
+
+    @test Rational{Int}(static(3//2)) === 3//2
+
+    @test Base.promote_rule(StaticInteger{3}, StaticReal{3.14}) === Float64
+
+    @test widemul(static(1), true) === widemul(1, true)
+    @test widemul(static(1.0), false) === widemul(1.0, false)
 end
 
 @testset "show" begin

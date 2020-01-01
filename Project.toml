@@ -7,8 +7,8 @@ version = "0.2.0"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 
 [compat]
-julia = "0.7, 1"
 Requires = "1.0, 1"
+julia = "0.7, 1"
 
 [extras]
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"

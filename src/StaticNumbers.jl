@@ -84,35 +84,23 @@ Base.@pure Base.Val(::Static{X}) where X = Val(X)
 const StaticOrInt = Union{StaticInteger, Int}
 
 # Promotion
-Base.promote_rule(::Type{<:Static{X}}, ::Type{<:Static{X}}) where {X} =
-    typeof(X)
-Base.promote_rule(::Type{<:AbstractIrrational}, ::Type{<:Static{X}}) where {X} =
-    promote_type(Float64, typeof(X))
+# We need to override promote and promote_typeof because they don't even call
+# promote_rule for all-same types.
+Base.promote(::ST, ys::ST...) where {ST <: Static{X}} where {X} = ntuple(i->X, 1+length(ys))
+Base.promote_type(::Type{ST}, ::Type{ST})  where {ST <: Static{X}} where {X} = typeof(X)
+Base.promote_typeof(::ST, ::ST...) where {ST <: Static{X}} where {X} = typeof(X)
+
+# To avoid infinite recursion, we need this:
+Base.promote_type(::Type{<:Static{X}}, T::Type...) where {X} = promote_type(typeof(X), promote_type(T...))
 
 # Loop over all three types specifically, instead of dispatching on the Union.
 for ST in (StaticInteger, StaticReal, StaticNumber)
-    # We need to override promote and promote_typeof because they don't even call
-    # promote_rule for all-same types.
-    Base.promote(::ST{X}, ys::ST{X}...) where {X} = ntuple(i->X, 1+length(ys))
-    Base.promote_type(::Type{ST{X}}, ::Type{ST{X}}) where {X} = typeof(X)
-    Base.promote_typeof(::ST{X}, ::ST{X}...) where {X} = typeof(X)
-    # To avoid infinite recursion, we need this:
-    Base.promote_type(::Type{ST{X}}, T::Type...) where {X} = promote_type(typeof(X), promote_type(T...))
-
-    Base.promote_rule(::Type{<:ST{X}}, ::Type{T}) where {X,T<:Number} = promote_type(typeof(X), T)
+    Base.promote_rule(::Type{ST{X}}, ::Type{T}) where {X,T<:Number} = promote_type(typeof(X), T)
 
     # Constructors
     (::Type{Complex{T}})(::ST{X}) where {T<:Real, X} = Complex{T}(X)
     (::Type{Rational{T}})(::ST{X}) where {T<:Integer, X} = Rational{T}(X)
 end
-
-Base.promote_rule(::Type{<:Static{X}}, ::Type{<:Static{Y}}) where {X,Y} =
-    promote_type(typeof(X),typeof(Y))
-
-# Bool has a special rule that we need to override?
-#Base.promote_rule(::Type{Bool}, ::Type{StaticInteger{X}}) where {X} = promote_type(Bool, typeof(X))
-
-#Base.BigInt(::Static{X}) where {X} = BigInt(X)
 
 "ofstatictype(x,y) - like oftype(x,y), but return a `Static` `x` is a `Static`."
 ofstatictype(::Static{X}, y) where {X} = static(oftype(X, y))
@@ -137,7 +125,7 @@ end
 for fun in (:-, :zero, :one, :oneunit, :trailing_zeros, :widen, :decompose)
     @eval Base.$fun(::Static{X}) where X = Base.$fun(X)
 end
-for fun in (:trunc, :floor, :ceil, :round)
+for fun in (:trunc, :floor, :ceil, :round, :isnan)
     @eval Base.$fun(::Union{StaticReal{X}, StaticNumber{X}}) where {X} = Base.$fun(X)
 end
 for fun in (:zero, :one, :oneunit)
@@ -187,17 +175,19 @@ for f in (:+, :-, :*, :/, :^)
     @eval Base.$f(::Static{X}, ::Static{X}) where {X} = $f(X,X)
 end
 # ...where simplifications are possible:
+# Note: We allow creation of specific static numbers, like 1 and 0 (as an exception)
+# since this cannot lead to the set of static numbers growing uncontrollably.
 Base.:&(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
 Base.:|(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
-Base.xor(::StaticInteger{X}, ::StaticInteger{X}) where {X} = zero(X)
-Base.:<(::Static{X}, ::Static{X}) where {X} = false
-Base.:<=(::Static{X}, ::Static{X}) where {X} = true
-Base.rem(::Static{X}, ::Static{X}) where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? oftype(X, NaN) : throw(DivideError()) : zero(X)
-Base.mod(::Static{X}, ::Static{X}) where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? oftype(X, NaN) : throw(DivideError()) : zero(X)
-Base.div(::Static{X}, ::Static{X}) where {X} = static(one(X)) # Needed for Julia > 1.3
+Base.xor(::StaticInteger{X}, ::StaticInteger{X}) where {X} = static(zero(X))
+Base.:<(::ST, ::ST) where {ST<:Static{X}} where {X} = false
+Base.:<=(::ST, ::ST) where {ST<:Static{X}} where {X} = true
+Base.rem(::ST, ::ST) where {ST<:Static{X}} where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? static(oftype(X, NaN)) : throw(DivideError()) : static(zero(X))
+Base.mod(::ST, ::ST) where {ST<:Static{X}} where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? static(oftype(X, NaN)) : throw(DivideError()) : static(zero(X))
+Base.div(::ST, ::ST) where {ST<:Static{X}} where {X} = static(one(X)) # Needed for Julia > 1.3
 
 # Three-argument function that gives no_op_err
-fma(x::Static{X}, y::Static{X}, z::Static{X}) where {X} = fma(X,X,X)
+fma(x::ST, y::ST, z::ST) where {ST<:Static{X}} where {X} = fma(X,X,X)
 
 # Static powers using Base.literal_pow.
 # This avoids DomainError in some cases?
