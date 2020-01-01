@@ -180,11 +180,17 @@ end
 Base.:&(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
 Base.:|(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
 Base.xor(::StaticInteger{X}, ::StaticInteger{X}) where {X} = static(zero(X))
-Base.:<(::ST, ::ST) where {ST<:Static{X}} where {X} = false
-Base.:<=(::ST, ::ST) where {ST<:Static{X}} where {X} = true
 Base.rem(::ST, ::ST) where {ST<:Static{X}} where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? static(oftype(X, NaN)) : throw(DivideError()) : static(zero(X))
 Base.mod(::ST, ::ST) where {ST<:Static{X}} where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? static(oftype(X, NaN)) : throw(DivideError()) : static(zero(X))
 Base.div(::ST, ::ST) where {ST<:Static{X}} where {X} = static(one(X)) # Needed for Julia > 1.3
+Base.:<(::ST, ::ST) where {ST<:StaticReal{X}} where {X} = false
+Base.:<=(::ST, ::ST) where {ST<:StaticReal{X}} where {X} = true
+# Bypass promotion in comparisons involving static unsigned integers
+for fun in (:(<), :(<=))
+    @eval Base.$fun(::StaticInteger{X}, y::Integer) where {X} = $fun(X, y)
+    @eval Base.$fun(x::Integer, ::StaticInteger{Y}) where {Y} = $fun(x, Y)
+    @eval Base.$fun(::StaticInteger{X}, ::StaticInteger{Y}) where {X,Y} = $fun(X, Y)
+end
 
 # Three-argument function that gives no_op_err
 fma(x::ST, y::ST, z::ST) where {ST<:Static{X}} where {X} = fma(X,X,X)
@@ -195,7 +201,7 @@ for T in (Bool, Int32, Int64, Float32, Float64, ComplexF32, ComplexF64, Irration
     Base.:^(x::T, ::StaticInteger{p}) where {p} = Base.literal_pow(^, x, Val(p))
 end
 Base.:^(x::Static{X}, ::StaticInteger{p}) where {X,p} = Base.literal_pow(^, X, Val(p))
-Base.:^(x::Static{X}, ::StaticInteger{X}) where {X} = Base.literal_pow(^, X, Val(X)) #disambig
+Base.:^(x::ST, ::ST) where {ST<:StaticInteger{X}} where {X} = Base.literal_pow(^, X, Val(X)) #disambig
 
 # ntuple accepts Val, so it should also accept static
 @inline Base.ntuple(f::F, ::StaticInteger{N}) where {F,N} = Base.ntuple(f, Val(N))

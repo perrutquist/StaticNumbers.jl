@@ -13,7 +13,7 @@ functions under the macro.
 @inline maybe_static(f::F, args...) where {F} = f(args...)
 @inline function maybe_static(f::F, args::Static...) where {F}
     y = f(args...)
-    y isa Number && !(y isa Bool) ? static(y) : y
+    y isa Number && !(y isa Bool) && !(y isa Unsigned) ? static(y) : y
 end
 
 @inline maybe_static(::typeof(nfields), t) = static(nfields(t))
@@ -30,6 +30,7 @@ function calls into `trystatic`.
 """
 statify(ex) = ex
 statify(x::Number) = :( static($x) )
+statify(x::Unsigned) = x
 statify(s::Symbol) = s == :end ? :( static($s) ) : s
 function statify(ex::Expr)
     if ex.head == :call

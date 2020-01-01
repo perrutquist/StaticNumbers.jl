@@ -101,6 +101,10 @@ There is no `StaticRational` datatype, but a `StaticReal` with a
 `Rational` type parameter will convert and promote like its parameter.
 For example: `static(1//2) + 1 === 3//2`.
 
+The `Unsigned` datatype currently does not work well with static numbers.
+For this reason  the `@stat` macro does turn unsigned numbers into static.
+(This is work in progress, and subjec to change.)
+
 `Static` numbers are only fast when fully specified. A `Vector{Static}`
 is much slower than a `Vector{Int}`.
 (A `Vector{StaticInteger{1}}` is fast and requires very little memory,

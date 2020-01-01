@@ -131,6 +131,9 @@ end
 
     @test widemul(static(1), true) === widemul(1, true)
     @test widemul(static(1.0), false) === widemul(1.0, false)
+
+    @test isnan(static(NaN)) === true
+    @test isnan(static(0.0)) === false
 end
 
 @testset "show" begin
@@ -411,6 +414,10 @@ end
     @test static(2:3)[2] === 3
     @test static(2:3)[static(2)] === 3
     @test @stat((2:3)[2]) === static(3)
+
+    # At the moment, we don't want @stat to create static unsigned numbers. (Subject to change.)
+    @test UInt(1) === @stat UInt(1)
+    @test UInt(1) === @stat unsigned(1)
 end
 
 @testset "examples for doc" begin
@@ -422,6 +429,16 @@ end
     @test 4 === @stat s + i
     @test (1, 4, 9, 16) === Tuple(i^2 for i in static(1):static(4))
     Test.@inferred Tuple(i^2 for i in static(1):static(4))
+end
+
+# NOTE: There's still a lot of work to do on unsigned
+@testset "unsigned" begin
+    @test static(UInt(2)) > -1
+    @test UInt(2) > static(-1)
+    @test static(UInt(2)) > static(-1)
+    @test static(UInt(2)) >= -1
+    @test UInt(2) >= static(-1)
+    @test static(UInt(2)) >= static(-1)
 end
 
 include("StaticArrays_test.jl")
