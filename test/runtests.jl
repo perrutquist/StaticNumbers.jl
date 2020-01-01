@@ -99,6 +99,28 @@ end
     @test StaticOneTo(3) === static(1):static(3)
     @test static(1):static(3) === @stat 1:3
 
+    @test StaticReal{3.1}(3.1) === static(3.1)
+    @test StaticReal{3.25}(3.25f0) === static(3.25)
+    @test_throws InexactError StaticReal{3.1}(3.11)
+
+    @test StaticNumber{3+im}(3+im) === static(3+im)
+    @test StaticNumber{3+im}(Int32(3)+im) === static(3+im)
+    @test_throws InexactError StaticReal{3+im}(3)
+
+    @test static(static(3.14)) === static(3.14)
+    @test static(static(3+im)) === static(3+im)
+
+    @test promote_type(StaticInteger{3}, StaticInteger{3}) === Int
+    @test promote_type(typeof(static(3.14)), typeof(pi)) === Float64
+
+    for x in (static(0), static(0.0), static(0//1), static(0 + 0im), static(0.0 + 0.0im))
+        @test promote(x,x) === (x+0, x+0)
+        @test Base.promote_typeof(x,x) === typeof(x+0)
+        @test promote_rule(typeof(x), Bool) === typeof(x+0)
+    end
+    @test promote(static(1), static(1)) === (1,1)
+    @test Base.promote_typeof(static(1), static(1)) === Int
+
     @test static(1):static(2):5 isa LengthStepRange{Int64,StaticInteger{-1},StaticInteger{2},Int64}
 end
 
