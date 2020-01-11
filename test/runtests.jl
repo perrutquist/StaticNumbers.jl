@@ -441,4 +441,12 @@ end
     @test static(UInt(2)) >= static(-1)
 end
 
+@testset "setindex(::Tuple, _, ::StaticInteger)" begin
+    @test @inferred(Base.setindex((1, 2, 3), nothing, static(1))) == (nothing, 2, 3)
+    @test @inferred(Base.setindex((1, 2, 3), nothing, static(2))) == (1, nothing, 3)
+    @test @inferred(Base.setindex((1, 2, 3), nothing, static(3))) == (1, 2, nothing)
+    @test_throws BoundsError Base.setindex((1, 2, 3), nothing, static(0))
+    @test_throws BoundsError Base.setindex((1, 2, 3), nothing, static(4))
+end
+
 include("StaticArrays_test.jl")

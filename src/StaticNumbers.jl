@@ -222,6 +222,11 @@ Base.:/(::StaticNumber{X}, y::Real) where {X} = X/y
 Base.:*(::StaticNumber{X}, y::Real) where {X} = X*y
 Base.:*(x::Real, ::StaticNumber{Y}) where {Y} = x*Y
 
+@inline function Base.setindex(x::Tuple, v, i::StaticInteger)
+    @boundscheck 1 <= i <= length(x) || throw(BoundsError(x, i))
+    return ntuple(n -> n == i ? v : x[n], length(x))
+end
+
 include("generate_static_methods.jl")
 
 include("LengthRanges.jl")
