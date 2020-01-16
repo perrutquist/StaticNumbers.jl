@@ -179,7 +179,7 @@ Base.:|(x::ST, ::ST) where {ST<:StaticInteger} = x
 Base.xor(::ST, ::ST) where {ST<:StaticInteger} = static(zero(ST))
 Base.rem(::ST, ::ST) where {ST<:Static{X}} where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? static(oftype(X, NaN)) : throw(DivideError()) : static(zero(X))
 Base.mod(::ST, ::ST) where {ST<:Static{X}} where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? static(oftype(X, NaN)) : throw(DivideError()) : static(zero(X))
-Base.div(::ST, ::ST) where {ST<:Static{X}} where {X} = static(one(X)) # Needed for Julia > 1.3
+Base.div(::ST, ::ST) where {ST<:Static{X}} where {X} = (X == 0 || isinf(X)) ? ( X isa Integer ? throw(DivideError()) : oftype(X, NaN) ) : static(one(X)) # Needed for Julia > 1.3
 Base.:<(::ST, ::ST) where {ST<:StaticReal{X}} where {X} = false
 Base.:<=(::ST, ::ST) where {ST<:StaticReal{X}} where {X} = true
 # Bypass promotion in comparisons involving static unsigned integers
@@ -190,7 +190,7 @@ for fun in (:(<), :(<=))
 end
 
 # Three-argument function that gives no_op_err
-fma(x::ST, y::ST, z::ST) where {ST<:Static{X}} where {X} = fma(X,X,X)
+Base.fma(::ST, ::ST, ::ST) where {ST<:Static{X}} where {X} = fma(X,X,X)
 
 # Static powers using Base.literal_pow.
 # This avoids DomainError in some cases?

@@ -38,7 +38,7 @@ end
             @test static(x) + y === x + y
             @test x + static(y) === x + y
             @test static(x) + static(y) === x + y
-            for f in (:-, :*, :/, :^, :widemul, :rem, :mod, :(<<), :(>>), :(==), :(<), :(<=), :(>), :(>=))
+            for f in (:-, :*, :/, :^, :widemul, :rem, :mod, :div, :(<<), :(>>), :(==), :(<), :(<=), :(>), :(>=))
                 r = try
                     @eval $f($x,$y)
                 catch
@@ -356,7 +356,8 @@ end
     @test static(3) & static(3) === static(3)
     @test static(3) | static(3) === static(3)
     @test static(3) ⊻ static(3) === static(0)
-    @test fma(static(3), static(3), static(3)) === 12
+    @test fma(static(3), static(3), static(3)) === 3*3+3
+    @test fma(static(3.0), static(3.0), static(3.0)) === 3.0*3.0+3.0
 end
 
 @testset "tuple indexing" begin
