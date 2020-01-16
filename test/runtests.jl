@@ -426,7 +426,9 @@ end
     # At the moment, we don't want @stat to create static unsigned numbers. (Subject to change.)
     @test UInt(1) === @stat UInt(1)
     @test UInt(1) === @stat unsigned(1)
+end
 
+@testset "Tuple generators" begin
     @test Tuple(i+j for i=static(2:3), j=static(10:10:20)) === (12, 13, 22, 23)
     Test.@inferred Tuple(i+j for i=static(2:3), j=static(10:10:20))
 end

@@ -1,29 +1,5 @@
 using StaticArrays
 
-@testset "mvector test" begin
-    m = Vector{Float64}(undef, static(3))
-    @test m isa MVector
-    @test eltype(m) == Float64
-    @test size(m) === (3,)
-
-    m = Vector(undef, static(3))
-    @test m isa MVector
-    @test eltype(m) == Any
-    @test size(m) === (3,)
-end
-
-@testset "mmatrix test" begin
-    m = Matrix{Float64}(undef, static(3), static(2))
-    @test m isa MMatrix
-    @test eltype(m) == Float64
-    @test size(m) === (3, 2)
-
-    m = Matrix(undef, static(3), static(2))
-    @test m isa MMatrix
-    @test eltype(m) == Any
-    @test size(m) === (3, 2)
-end
-
 @testset "StaticArrays Size" begin
     @test Size(static(2:4)) === Size(3)
     @test Size(static(3)) === Size(3)
