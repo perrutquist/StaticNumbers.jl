@@ -225,6 +225,8 @@ end
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::Integer) = LengthStepRange(static(a-s), s, (b-a)÷s+1)
 
+# TODO: range(start, length=length) implemented with statifc numbers:
+
 # NOTE: This does not use Base.twiceprecision because that type is not <: Real. Will lead to some loss of precision, unfortunately.
 # TODO: Fix infinte iterations
 # @inline function Base.:(:)(a::Static{A}, s::Static{S}, b::Static{B}) where {A,S,B}
@@ -234,10 +236,15 @@ end
 
 const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 
-@inline Base.eachindex(::StaticLengthRange) = StaticOneTo(r.length)
+@inline Base.eachindex(r::StaticLengthRange) = StaticOneTo(r.length)
 
 @inline Base.getindex(t::Tuple, r::StaticLengthRange) = ntuple(i -> t[r[i]], length(r))
 
 @inline Base.Tuple(iter::StaticLengthRange) = ntuple(i->iter[i], length(iter))
 
 @inline Base.Tuple(g::Base.Generator{<:StaticLengthRange,F}) where {F} = ntuple(i->g.f(g.iter[i]), length(g.iter))
+
+@inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}}) where {F}
+    ix = CartesianIndices(eachindex.(g.iter.iterators))
+    ntuple(i->g.f(getindex.(g.iter.iterators, Tuple(ix[i]))), static(length(ix)))
+end
