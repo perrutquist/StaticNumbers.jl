@@ -122,7 +122,7 @@ end
 # Single-argument functions that do not already work.
 # Note: We're not attempting to support every function in Base.
 # TODO: Should have a macro for easily extending support.
-for fun in (:-, :zero, :one, :oneunit, :trailing_zeros, :widen, :decompose)
+for fun in (:-, :zero, :one, :oneunit, :trailing_zeros, :decompose)
     @eval Base.$fun(::Static{X}) where X = Base.$fun(X)
 end
 for fun in (:trunc, :floor, :ceil, :round, :isnan)
@@ -131,16 +131,13 @@ end
 for fun in (:zero, :one, :oneunit)
     @eval Base.$fun(::Type{<:Static{X}}) where {X} = Base.$fun(typeof(X))
 end
+Base.widen(::Static{X}) where {X} = X isa Bool ? X : widen(X)
 
 # It's a pity there's no AbstractBool supertype.
 const StaticBool = Union{StaticInteger{false}, StaticInteger{true}}
 const StaticOrBool = Union{StaticBool, Bool}
 
 Base.:!(x::StaticBool) = !Bool(x)
-
-# Because Base does not widen Bool
-Base.widemul(x::StaticBool, y::Number) = x*y
-Base.widemul(x::Number, y::StaticBool) = x*y
 
 # false is a strong zero
 for T in (Integer, Real, Number, Complex{<:Real}, StaticInteger, StaticReal, StaticNumber)
@@ -177,9 +174,9 @@ end
 # ...where simplifications are possible:
 # Note: We allow creation of specific static numbers, like 1 and 0 (as an exception)
 # since this cannot lead to the set of static numbers growing uncontrollably.
-Base.:&(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
-Base.:|(::StaticInteger{X}, ::StaticInteger{X}) where {X} = X
-Base.xor(::StaticInteger{X}, ::StaticInteger{X}) where {X} = static(zero(X))
+Base.:&(x::ST, ::ST) where {ST<:StaticInteger} = x
+Base.:|(x::ST, ::ST) where {ST<:StaticInteger} = x
+Base.xor(::ST, ::ST) where {ST<:StaticInteger} = static(zero(ST))
 Base.rem(::ST, ::ST) where {ST<:Static{X}} where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? static(oftype(X, NaN)) : throw(DivideError()) : static(zero(X))
 Base.mod(::ST, ::ST) where {ST<:Static{X}} where {X} = (X==0 || isinf(X)) ? X isa AbstractFloat ? static(oftype(X, NaN)) : throw(DivideError()) : static(zero(X))
 Base.div(::ST, ::ST) where {ST<:Static{X}} where {X} = static(one(X)) # Needed for Julia > 1.3

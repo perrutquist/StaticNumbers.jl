@@ -38,7 +38,7 @@ end
             @test static(x) + y === x + y
             @test x + static(y) === x + y
             @test static(x) + static(y) === x + y
-            for f in (:-, :*, :/, :^, :rem, :mod, :(<<), :(>>), :(==), :(<), :(<=), :(>), :(>=))
+            for f in (:-, :*, :/, :^, :widemul, :rem, :mod, :(<<), :(>>), :(==), :(<), :(<=), :(>), :(>=))
                 r = try
                     @eval $f($x,$y)
                 catch
@@ -352,6 +352,11 @@ end
     @test StaticNumbers.@tostatic(x, 0, 0) === static(3)
 
     @test eachindex(static(2:3)) === StaticOneTo(2)
+
+    @test static(3) & static(3) === static(3)
+    @test static(3) | static(3) === static(3)
+    @test static(3) ⊻ static(3) === static(0)
+    @test fma(static(3), static(3), static(3)) === 12
 end
 
 @testset "tuple indexing" begin
@@ -444,6 +449,8 @@ end
     @test static(UInt(2)) >= -1
     @test UInt(2) >= static(-1)
     @test static(UInt(2)) >= static(-1)
+    @test static(1) << UInt(2) === 4
+    @test static(4) >> UInt(2) === 1
 end
 
 @testset "setindex(::Tuple, _, ::StaticInteger)" begin
