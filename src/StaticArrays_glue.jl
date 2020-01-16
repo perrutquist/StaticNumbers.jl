@@ -19,8 +19,8 @@ LengthUnitRange(::SUnitRange{Start, L}) where {Start, L} = LengthUnitRange(stati
 staticlength(r::SUnitRange) = LengthUnitRange(r)
 
 Size(::LengthRange{T,Z,S,StaticInteger{L}}) where {T,Z,S,L} = Size(Int(L))
-Size(::StaticInteger{L}) where {L} = Size(Int(L))
-static(::Size{L}) where {L} = StaticInteger{L}()
+Size(s::Vararg{StaticInteger}) = Size(Int.(s))
+static(::Size{S}) where {S} = static.(S)
 
 for AT in (Array, AbstractArray), RT in (LengthStepRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}, LengthUnitRange{T,Z,StaticInteger{L}} where {T,Z,L})
     Base.getindex(A::AT, r::RT) = MVector(ntuple(i -> A[r[i]], length(r)))

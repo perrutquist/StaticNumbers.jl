@@ -1,5 +1,17 @@
 using StaticArrays
 
+@testset "mvector test" begin
+    m = Vector{Float64}(undef, static(3))
+    @test m isa MVector
+    @test eltype(m) == Float64
+    @test size(m) === (3,)
+
+    m = Vector(undef, static(3))
+    @test m isa MVector
+    @test eltype(m) == Any
+    @test size(m) === (3,)
+end
+
 @testset "mmatrix test" begin
     m = Matrix{Float64}(undef, static(3), static(2))
     @test m isa MMatrix
@@ -10,6 +22,13 @@ using StaticArrays
     @test m isa MMatrix
     @test eltype(m) == Any
     @test size(m) === (3, 2)
+end
+
+@testset "StaticArrays Size" begin
+    @test Size(static(2:4)) === Size(3)
+    @test Size(static(3)) === Size(3)
+    @test Size(static(3), static(4)) === Size(3, 4)
+    @test static(Size(3)) === (static(3),)
 end
 
 @testset "static length indexing" begin
@@ -42,6 +61,7 @@ end
 
         f(t) = @stat t[2:end-1]
         @test f(x) === SVector((2,3))
+        Test.@inferred f(x)
         Test.@inferred f((1,2,3,4))
 
         @stat g(t,k) = t[k .+ (0:1)]
