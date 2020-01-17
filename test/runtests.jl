@@ -429,6 +429,7 @@ end
 end
 
 @testset "Tuple generators" begin
+    @test Tuple(10i+j for i=static(1:3), j=static(1:2)) === Tuple(10i+j for i=1:3, j=1:2)
     @test Tuple(i+j for i=static(2:3), j=static(10:10:20)) === (12, 13, 22, 23)
     Test.@inferred Tuple(i+j for i=static(2:3), j=static(10:10:20))
 end

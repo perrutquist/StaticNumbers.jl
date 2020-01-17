@@ -242,9 +242,9 @@ const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 
 @inline Base.Tuple(iter::StaticLengthRange) = ntuple(i->iter[i], length(iter))
 
-@inline Base.Tuple(g::Base.Generator{<:StaticLengthRange,F}) where {F} = ntuple(i->g.f(g.iter[i]), length(g.iter))
+@inline Base.Tuple(g::Base.Generator{<:StaticLengthRange}) = ntuple(i->g.f(g.iter[i]), length(g.iter))
 
-@inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}}) where {F}
+@inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}})
     ix = CartesianIndices(eachindex.(g.iter.iterators))
     ntuple(i->g.f(getindex.(g.iter.iterators, Tuple(ix[i]))), static(length(ix)))
 end
