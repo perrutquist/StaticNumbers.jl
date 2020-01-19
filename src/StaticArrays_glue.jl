@@ -1,4 +1,4 @@
-import .StaticArrays: StaticArray, MArray, SArray, SVector, MVector, MMatrix, SOneTo, SUnitRange, Size, index_size, index_sizes, StaticIndexing, _ind
+import .StaticArrays: StaticArray, StaticVector, MArray, SArray, SVector, MVector, MMatrix, SOneTo, SUnitRange, Size, index_size, index_sizes, StaticIndexing, _ind, similar_type
 
 import Base: Matrix, Array
 
@@ -6,14 +6,19 @@ import Base: Matrix, Array
 
 SOneTo(::StaticOneTo{L}) where {L} = SOneTo{L}()
 StaticOneTo(::SOneTo{L}) where {L} = StaticOneTo{L}()
+staticlength(r::SOneTo) = StaticOneTo(r)
+static(r::SOneTo) = StaticOneTo(r)
+
 # TODO: Maybe just SOneTo from StaticArrays instead of defining StaticOneTo?
 
 Base.@pure SUnitRange(r::LengthUnitRange) = SUnitRange{Int(first(r)), Int(length(r))}()
 LengthUnitRange(::SUnitRange{Start, L}) where {Start, L} = LengthUnitRange(static(Start-1), static(L))
 staticlength(r::SUnitRange) = LengthUnitRange(r)
+static(r::SUnitRange) = LengthUnitRange(r)
 
 Size(::LengthRange{T,Z,S,StaticInteger{L}}) where {T,Z,S,L} = Size(Int(L))
-Size(s::Vararg{StaticInteger}) = Size(Int.(s))
+Size(s::Tuple{Vararg{StaticInteger}}) = Size(Int.(s))
+Size(s::StaticInteger...) = Size(s)
 static(::Size{S}) where {S} = static.(S)
 
 for AT in (Array, AbstractArray), RT in (LengthStepRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}, LengthUnitRange{T,Z,StaticInteger{L}} where {T,Z,L})
@@ -31,7 +36,15 @@ end
 @inline maybe_static(::typeof(size), A::StaticArray) = map(static, size(A))
 @inline maybe_static(::typeof(size), A::StaticArray, d::Integer) = static(size(A, d))
 
-@inline (::Type{SA})(g::Base.Generator{<:LengthRange,F}) where {SA<:StaticArray, F} = SA(Tuple(g))
-@inline (::Type{SA})(iter::LengthRange) where {SA<:StaticArray} = SA(Tuple(iter))
+@inline (::Type{T})(g::Base.Generator{<:LengthRange}) where {T<:StaticVector} = T(Tuple(g))
+@inline (::Type{T})(iter::LengthRange) where {T<:StaticVector} = T(Tuple(iter))
+
+@inline function (::Type{T})(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}}) where {T<:StaticArray}
+    sz = Size(size(g))
+    data = Tuple(g)
+    ST = similar_type(T, eltype(data), sz)
+    ST <: T || error("Generator yields the wrong type of static array.")
+    ST(data)
+end
 
 # TODO: Interface to StaticArrays for multi-dimensional indexing

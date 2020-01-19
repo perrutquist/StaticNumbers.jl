@@ -58,3 +58,17 @@ end
 
     @test SVector(i^2 for i in static(1):3) === SA[1, 4, 9]
 end
+
+@inline function testmul(A::SMatrix, B::SMatrix)
+    SArray((Base.@_inline_meta; +(Tuple(A[i,k]*B[k,j] for k in static(axes(A,2)))...))
+        for i in static(axes(A,1)), j in static(axes(B,2)))
+end
+
+@testset "SMatrix generators" begin
+    A = SArray(i + j for i = static(2:2:4), j = static(10:10:30))
+    @test A === @SMatrix [12 22 32; 14 24 34]
+    B = SArray(10i + j for i = static(1:3), j = static(4:5))
+    @test B === @SMatrix [14 15; 24 25; 34 35]
+    @test testmul(A, B) == [1784  1850; 1928  2000]
+    Test.@inferred testmul(A, B)
+end
