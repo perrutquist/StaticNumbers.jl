@@ -122,7 +122,6 @@ LengthUnitRange(r::UnitRange) = LengthUnitRange(first(r)-step(r), length(r))
     @boundscheck checkbounds(r, i)
     convert(T, r.zeroth + i*r.step)
 end
-@inline Base.unsafe_getindex(r::LengthRange, i::Integer) = r.zeroth + i*r.step
 
 @inline function Base.getindex(r::StepRange{T}, s::LengthRange{<:Integer}) where {T}
     @boundscheck checkbounds(r, s)
@@ -245,7 +244,20 @@ const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 
 @inline Base.Tuple(g::Base.Generator{<:StaticLengthRange}) = ntuple(i->g.f(Base.unsafe_getindex(g.iter, i)), length(g.iter))
 
+@inline Base.unsafe_getindex(r::LengthRange, i::Integer) = r.zeroth + i*r.step
+@inline Base.unsafe_getindex(iter::Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}, i::Integer) = unsafe_i2s(i-1, iter.iterators...)
+
+"""
+Helper function to look up a linear index in a product of fixed-length ranges
+Takes 0-based linear index and a variable number of ranges.
+"""
+@inline unsafe_i2s(i) = ()
+@inline function unsafe_i2s(i, v, vs...)
+    l = length(v)
+    n = div(i, l)
+    (Base.unsafe_getindex(v, i-n*l+1), unsafe_i2s(n, vs...)...)
+end
+
 @inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}})
-    ix = CartesianIndices(eachindex.(g.iter.iterators))
-    ntuple(i->g.f(map(Base.unsafe_getindex, g.iter.iterators, Tuple(@inbounds(ix[i])))), static(length(ix)))
+    ntuple(i -> g.f(Base.unsafe_getindex(g.iter, i)), static(length(g)))
 end
