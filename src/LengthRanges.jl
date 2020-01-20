@@ -156,7 +156,7 @@ end
 @inline Base.:(:)(a::StaticInteger{1}, b::StaticInteger) = StaticOneTo(b)
 
 if VERSION >= v"1.1.0-"
-Base.Broadcast.axistype(a::StaticOneTo, b::Base.OneTo) = b
+Base.Broadcast.axistype(a::StaticOneTo, b::Base.OneTo) = Base.OneTo(length(a))
 Base.Broadcast.axistype(a::Base.OneTo, b::StaticOneTo) = a
 end
 

@@ -144,6 +144,12 @@ end
     @test sprint(show, static(2:2:3)) == "static(2:2:2)"
 end
 
+@testset "broadcasting" begin
+    @test static(1:2) .^ 2 == [1, 4]
+    @test static(1:2) .* static(3:4)' == [3 4; 6 8]
+    @test static(1:2) .* static(3:4) == [3, 8]
+end
+
 @testset "trystatic" begin
     @test trystatic(0, static(1)) === 0
     @test trystatic(1, static(1)) === static(1)
