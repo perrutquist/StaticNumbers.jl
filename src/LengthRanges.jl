@@ -242,7 +242,9 @@ const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 
 @inline Base.Tuple(iter::StaticLengthRange) = ntuple(i->Base.unsafe_getindex(iter, i), length(iter))
 
-@inline Base.Tuple(g::Base.Generator{<:StaticLengthRange}) = ntuple(i->g.f(Base.unsafe_getindex(g.iter, i)), length(g.iter))
+@inline function Base.Tuple(g::Base.Generator{<:StaticLengthRange, F}) where {F}
+    ntuple(i->g.f(Base.unsafe_getindex(g.iter, i)), length(g.iter))
+end
 
 @inline Base.unsafe_getindex(r::LengthRange, i::Integer) = r.zeroth + i*r.step
 @inline Base.unsafe_getindex(iter::Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}, i::Integer) = unsafe_i2s(i-1, iter.iterators...)
@@ -258,6 +260,6 @@ Takes 0-based linear index and a variable number of ranges.
     (Base.unsafe_getindex(v, i-n*l+1), unsafe_i2s(n, vs...)...)
 end
 
-@inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}})
+@inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}},F}) where {F}
     ntuple(i -> (Base.@_inline_meta; g.f(Base.unsafe_getindex(g.iter, i))), static(length(g)))
 end
