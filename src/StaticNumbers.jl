@@ -79,6 +79,16 @@ Base.@pure static(x::Bool) = x ? StaticInteger{true}() : StaticInteger{false}() 
 # it should treat it as equivalent to Val{X}.
 Base.@pure Base.Val(::Static{X}) where X = Val(X)
 
+# Helper function that returns the tuple (1, 2, ..., n)
+Base.@pure _tuple_to(n::Int) = n <= 0 ? () : (_tuple_to(n-1)..., n)
+
+# StaticNumbers.ntuple does the same thing as Base.ntuple, but implemnts it differently,
+@inline ntuple(f::F, ::Val{N}) where {F,N} = map(f, _tuple_to(Int(N)))
+@inline ntuple(f::F, ::StaticInteger{N}) where {F,N} = map(f, _tuple_to(Int(N)))
+@inline ntuple(f::F, n::Int) where {F,N} = map(f, _tuple_to(n))
+
+@inline Base.ntuple(f::F, n::StaticInteger) where {F,N} = ntuple(f, n)
+
 # Functions that take only `Int` may be too restrictive.
 # The StaticOrInt type union is often a better choice.
 const StaticOrInt = Union{StaticInteger, Int}
@@ -86,7 +96,7 @@ const StaticOrInt = Union{StaticInteger, Int}
 # Promotion
 # We need to override promote and promote_typeof because they don't even call
 # promote_rule for all-same types.
-Base.promote(::ST, ys::ST...) where {ST <: Static{X}} where {X} = ntuple(i->X, 1+length(ys))
+Base.promote(::ST, ys::ST...) where {ST <: Static{X}} where {X} = ntuple(i->X, static(1+length(ys)))
 Base.promote_type(::Type{ST}, ::Type{ST})  where {ST <: Static{X}} where {X} = typeof(X)
 Base.promote_typeof(::ST, ::ST...) where {ST <: Static{X}} where {X} = typeof(X)
 
@@ -200,9 +210,6 @@ end
 Base.:^(x::Static{X}, ::StaticInteger{p}) where {X,p} = Base.literal_pow(^, X, Val(p))
 Base.:^(x::ST, ::ST) where {ST<:StaticInteger{X}} where {X} = Base.literal_pow(^, X, Val(X)) #disambig
 
-# ntuple accepts Val, so it should also accept static
-@inline Base.ntuple(f::F, ::StaticInteger{N}) where {F,N} = Base.ntuple(f, Val(N))
-
 # For brevity, all `Static` numbers are displayed as `static(X)`, rather than, for
 # example, `StaticInteger{X}()`. It is possible to discern between the different
 # types of `Static` by looking at `X`.
@@ -221,7 +228,7 @@ Base.:*(x::Real, ::StaticNumber{Y}) where {Y} = x*Y
 
 @inline function Base.setindex(x::Tuple, v, i::StaticInteger)
     @boundscheck 1 <= i <= length(x) || throw(BoundsError(x, i))
-    return ntuple(n -> n == i ? v : x[n], length(x))
+    return ntuple(n -> n == i ? v : x[n], static(length(x)))
 end
 
 include("generate_static_methods.jl")
