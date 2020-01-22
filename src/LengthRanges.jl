@@ -241,7 +241,7 @@ const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 @inline Base.getindex(t::Tuple, r::StaticLengthRange{<:Integer}) = ntuple(i -> t[Base.unsafe_getindex(r, i)], length(r))
 
 @inline Base.Tuple(iter::StaticLengthRange) = ntuple(i->Base.unsafe_getindex(iter, i), length(iter))
-@inline Base.Tuple(::StaticOneTo{N}) where {N} = ntuple(identity, Val(N))
+@inline Base.Tuple(::StaticOneTo{N}) where {N} = ntuple(identity, static(N))
 
 @inline function Base.Tuple(g::Base.Generator{<:StaticLengthRange, F}) where {F}
     ntuple(i->g.f(Base.unsafe_getindex(g.iter, i)), length(g.iter))
@@ -250,7 +250,7 @@ end
 # Note: StaticOneTo is covered by StaticLengthRange, above, but if we can avoid the
 #       anonymous function that closes over g.f, then we get better type inference
 #       if the function is called recursively.
-@inline Base.Tuple(g::Base.Generator{StaticOneTo{N}, F}) where {N,F} = ntuple(g.f, Val(N))
+@inline Base.Tuple(g::Base.Generator{StaticOneTo{N}, F}) where {N,F} = ntuple(g.f, static(N))
 
 @inline Base.unsafe_getindex(r::LengthRange, i::Integer) = r.zeroth + i*r.step
 @inline Base.unsafe_getindex(iter::Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}, i::Integer) = unsafe_i2s(i-1, iter.iterators...)
