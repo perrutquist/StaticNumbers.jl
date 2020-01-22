@@ -79,15 +79,16 @@ Base.@pure static(x::Bool) = x ? StaticInteger{true}() : StaticInteger{false}() 
 # it should treat it as equivalent to Val{X}.
 Base.@pure Base.Val(::Static{X}) where X = Val(X)
 
-# Helper function that returns the tuple (1, 2, ..., n)
-Base.@pure _tuple_to(n::Int) = n <= 0 ? () : (_tuple_to(n-1)..., n)
+# # Helper function that returns the tuple (1, 2, ..., n)
+# Base.@pure _tuple_to(n::Int) = n <= 0 ? () : (_tuple_to(n-1)..., n)
+#
+# # This does the same thing as Base.ntuple, but implemnts it differently.
+# # Commented out, because benchmarks showeed regressions.
+# @inline ntuple(f::F, ::Val{N}) where {F,N} = map(f, _tuple_to(Int(N)))
+# @inline ntuple(f::F, ::StaticInteger{N}) where {F,N} = map(f, _tuple_to(Int(N)))
+# @inline ntuple(f::F, n::Int) where {F} = map(f, _tuple_to(n))
 
-# StaticNumbers.ntuple does the same thing as Base.ntuple, but implemnts it differently,
-@inline ntuple(f::F, ::Val{N}) where {F,N} = map(f, _tuple_to(Int(N)))
-@inline ntuple(f::F, ::StaticInteger{N}) where {F,N} = map(f, _tuple_to(Int(N)))
-@inline ntuple(f::F, n::Int) where {F,N} = map(f, _tuple_to(n))
-
-@inline Base.ntuple(f::F, n::StaticInteger) where {F,N} = ntuple(f, n)
+@inline Base.ntuple(f::F, ::StaticInteger{N}) where {F,N} = ntuple(f, Val(N))
 
 # Functions that take only `Int` may be too restrictive.
 # The StaticOrInt type union is often a better choice.
