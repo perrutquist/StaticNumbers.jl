@@ -267,5 +267,5 @@ Takes 0-based linear index and a variable number of ranges.
 end
 
 @inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}},F}) where {F}
-    ntuple(i -> (Base.@_inline_meta; g.f(Base.unsafe_getindex(g.iter, i))), static(length(g)))
+    ntuple(i -> g.f(Base.unsafe_getindex(g.iter, i)), static(length(g)))
 end

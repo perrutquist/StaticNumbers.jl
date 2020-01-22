@@ -197,9 +197,16 @@ end
 end
 
 @testset "various" begin
-    @test ntuple(identity, static(5)) === ntuple(identity, Val(5))
+    @test ntuple(identity, static(5)) === static.(ntuple(identity, Val(5)))
+    Test.@inferred ntuple(identity, static(1))
     Test.@inferred ntuple(identity, static(5))
+    Test.@inferred ntuple(identity, static(25))
+    Test.@inferred ntuple(static, static(1))
     Test.@inferred ntuple(static, static(5))
+    Test.@inferred ntuple(static, static(25))
+    Test.@inferred ntuple(x->x^2, static(1))
+    Test.@inferred ntuple(x->x^2, static(5))
+    Test.@inferred ntuple(x->x^2, static(25))
 
     # Test StaticRanges
 
@@ -443,10 +450,10 @@ tuple_test3(n) = Tuple(Tuple(i+j for i in static(1):n) for j in static(1:n))
     @test Tuple(i+j for i=static(2:3), j=static(10:10:20)) === (12, 13, 22, 23)
     Test.@inferred Tuple(i+j for i=static(2:3), j=static(10:10:20))
 
-    @test tuple_test(static(2)) === (1, 2)
+    @test tuple_test(static(2)) === static.((1, 2))
     Test.@inferred tuple_test(static(2))
 
-    @test tuple_test2(static(2)) === ((1, 2), (1, 2))
+    @test tuple_test2(static(2)) === (static.((1, 2)), static.((1, 2)))
     Test.@inferred tuple_test2(static(2))
 
     @test tuple_test3(static(2)) === ((2, 3), (3, 4))
