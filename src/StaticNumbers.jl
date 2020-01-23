@@ -80,6 +80,7 @@ Base.@pure static(x::Bool) = x ? StaticInteger{true}() : StaticInteger{false}() 
 Base.@pure Base.Val(::Static{X}) where X = Val(X)
 
 # ntuple without generated functions
+# Note: This gets really slow for n > 32.
 "`ntuple(f, static(n))` yields the tuple `(f(static(1)), f(static(2), ..., f(static(n)))`."
 @inline Base.ntuple(f::F, n::StaticInteger{N}) where {F,N} = N <= 0 ? () : (ntuple(f, static(N-1))..., f(n))
 

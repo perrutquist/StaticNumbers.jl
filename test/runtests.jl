@@ -448,16 +448,17 @@ tuple_test3(n) = Tuple(Tuple(i+j for i in static(1):n) for j in static(1:n))
 @testset "Tuple generators" begin
     @test Tuple(10i+j for i=static(1:3), j=static(1:2)) === Tuple(10i+j for i=1:3, j=1:2)
     @test Tuple(i+j for i=static(2:3), j=static(10:10:20)) === (12, 13, 22, 23)
-    Test.@inferred Tuple(i+j for i=static(2:3), j=static(10:10:20))
-
     @test tuple_test(static(2)) === static.((1, 2))
-    Test.@inferred tuple_test(static(2))
-
     @test tuple_test2(static(2)) === (static.((1, 2)), static.((1, 2)))
-    Test.@inferred tuple_test2(static(2))
-
     @test tuple_test3(static(2)) === ((2, 3), (3, 4))
-    Test.@inferred tuple_test3(static(2))
+
+    if VERSION >= v"1.3"
+        # Some of the inference tests are too hard for Julia 1.0
+        Test.@inferred Tuple(i+j for i=static(2:3), j=static(10:10:20))
+        Test.@inferred tuple_test(static(2))
+        Test.@inferred tuple_test2(static(2))
+        Test.@inferred tuple_test3(static(2))
+    end
 end
 
 @testset "examples for doc" begin
