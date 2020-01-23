@@ -11,8 +11,9 @@ Requires = "1.0, 1"
 julia = "0.7, 1"
 
 [extras]
+SIMD = "fdea26ae-647d-5447-a871-4b548cad5224"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "StaticArrays"]
+test = ["Test", "StaticArrays", "SIMD"]

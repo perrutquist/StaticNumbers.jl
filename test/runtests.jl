@@ -493,3 +493,5 @@ end
 end
 
 include("StaticArrays_test.jl")
+
+include("SIMD_test.jl")

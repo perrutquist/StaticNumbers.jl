@@ -9,6 +9,7 @@ export Static, static,
 
 function __init__()
     @require StaticArrays="90137ffa-7385-5640-81b9-e52037218182" include("StaticArrays_glue.jl")
+    @require SIMD="fdea26ae-647d-5447-a871-4b548cad5224" include("SIMD_glue.jl")
 end
 
 const StaticError = ErrorException("Illegal type parameter for Static.")
