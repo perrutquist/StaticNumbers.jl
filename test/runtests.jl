@@ -492,6 +492,24 @@ end
     @test_throws BoundsError Base.setindex((1, 2, 3), nothing, static(4))
 end
 
+@testset "StaticNumbers.map" begin
+    long_tuple = (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35)
+    @test StaticNumbers.map(sin, (1,2,3)) === Base.map(sin, (1,2,3))
+    @test StaticNumbers.map(sin, long_tuple) === Base.map(sin, long_tuple)
+    @test StaticNumbers.map(+, (1,2,3), (1,2,3)) === Base.map(+, (1,2,3), (1,2,3))
+    @test StaticNumbers.map(+, long_tuple, long_tuple) === Base.map(+, long_tuple, long_tuple)
+    @test StaticNumbers.map(+, (1,2,3), (1,2,3), (1,2,3)) === Base.map(+, (1,2,3), (1,2,3), (1,2,3))
+    @test StaticNumbers.map(+, long_tuple, long_tuple, long_tuple) === Base.map(+, long_tuple, long_tuple, long_tuple)
+    if VERSION >= v"1.3"
+        Test.@inferred StaticNumbers.map(sin, (1,2,3))
+        Test.@inferred StaticNumbers.map(sin, long_tuple)
+        Test.@inferred StaticNumbers.map(+, (1,2,3), (1,2,3))
+        Test.@inferred StaticNumbers.map(+, long_tuple, long_tuple)
+        Test.@inferred StaticNumbers.map(+, (1,2,3), (1,2,3), (1,2,3))
+        Test.@inferred StaticNumbers.map(+, long_tuple, long_tuple, long_tuple)
+    end
+end
+
 include("StaticArrays_test.jl")
 
 include("SIMD_test.jl")

@@ -80,9 +80,28 @@ Base.@pure static(x::Bool) = x ? StaticInteger{true}() : StaticInteger{false}() 
 # it should treat it as equivalent to Val{X}.
 Base.@pure Base.Val(::Static{X}) where X = Val(X)
 
-# ntuple without generated functions
-# Note: This gets really slow for n > 32.
-"`ntuple(f, static(n))` yields the tuple `(f(static(1)), f(static(2), ..., f(static(n)))`."
+"""
+`StaticNumbers.map(f, t::Tuple)` works the same as `Base.map(f, t)`, but does not stop
+in-lining after a certain tuple length. Long tuples will cause code blowup.
+"""
+# Code copied from julia/base/tuples.jl and slightly modified
+@inline map(f::F, t::Tuple{}) where {F} = ()
+@inline map(f::F, t::Tuple) where {F} = (f(t[1]), map(f, Base.tail(t))...)
+@inline map(f::F, t::Tuple{}, s::Tuple{}) where {F} = ()
+@inline map(f::F, t::Tuple, s::Tuple) where {F} = (f(t[1],s[1]), map(f, Base.tail(t), Base.tail(s))...)
+@inline heads(ts::Tuple...) = map(first, ts)
+@inline tails(ts::Tuple...) = map(Base.tail, ts)
+@inline map(f, ::Tuple{}...) = ()
+@inline map(f::F, t1::Tuple, t2::Tuple, ts::Tuple...) where {F} = (f(heads(t1, t2, ts...)...), map(f, tails(t1, t2, ts...)...)...)
+@inline map(args...) = Base.map(args...) # fallback for non-tuples
+
+"""
+`ntuple(f, static(n))` yields the tuple `(f(static(1)), f(static(2), ..., f(static(n)))`.
+This will ususally yield the same result as `ntuple(f, n)` but may make the compiler try
+even harder to constant-propagate the integer input into `f`.
+
+Note: Currently, tuples longer than 32 elements become very inefficient for some reason.
+"""
 @inline Base.ntuple(f::F, n::StaticInteger{N}) where {F,N} = N <= 0 ? () : (ntuple(f, static(N-1))..., f(n))
 
 # Functions that take only `Int` may be too restrictive.
