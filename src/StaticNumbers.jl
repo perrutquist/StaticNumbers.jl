@@ -92,7 +92,7 @@ in-lining after a certain tuple length. Long tuples will cause code blowup.
 @inline heads(ts::Tuple...) = map(first, ts)
 @inline tails(ts::Tuple...) = map(Base.tail, ts)
 @inline map(f, ::Tuple{}...) = ()
-@inline map(f::F, t1::Tuple, t2::Tuple, ts::Tuple...) where {F} = (f(heads(t1, t2, ts...)...), map(f, tails(t1, t2, ts...)...)...)
+@inline map(f::F, t1::Tuple{Any,Vararg{Any,N}}, t2::Tuple{Any,Vararg{Any,N}}, ts::Tuple{Any,Vararg{Any,N}}...) where {F,N} = (f(heads(t1, t2, ts...)...), map(f, tails(t1, t2, ts...)...)...)
 @inline map(args...) = Base.map(args...) # fallback for non-tuples
 
 """
