@@ -96,13 +96,17 @@ in-lining after a certain tuple length. Long tuples will cause code blowup.
 @inline map(args...) = Base.map(args...) # fallback for non-tuples
 
 """
-`ntuple(f, static(n))` yields the tuple `(f(static(1)), f(static(2), ..., f(static(n)))`.
+`ntuple(f, static(n))` yields the tuple `(f(static(1)), f(static(2)), ..., f(static(n)))`.
 This will ususally yield the same result as `ntuple(f, n)` but may make the compiler try
 even harder to constant-propagate the integer input into `f`.
-
-Note: Currently, tuples longer than 32 elements become very inefficient for some reason.
 """
-@inline Base.ntuple(f::F, n::StaticInteger{N}) where {F,N} = N <= 0 ? () : (ntuple(f, static(N-1))..., f(n))
+# Recursive version only worked for tuple lengths up to 32, so resorting to @generated.
+@generated function Base.ntuple(f::F, ::StaticInteger{N}) where {F,N}
+    N::Int
+    (N >= 0) || throw(ArgumentError(string("tuple length should be ≥ 0, got ", N)))
+    v = Expr(:tuple, [ :( f(StaticInteger{$i}()) ) for i in 1:N ]... )
+    :( Base.@_inline_meta; $v )
+end
 
 # Functions that take only `Int` may be too restrictive.
 # The StaticOrInt type union is often a better choice.
