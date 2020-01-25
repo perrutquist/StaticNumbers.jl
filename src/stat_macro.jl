@@ -43,7 +43,7 @@ function statify(ex::Expr)
         end
     #elseif ex.head == :.
     #    Expr(:., :maybe_static, Expr(:tuple, ex.args[1], map(statify, ex.args[2].args)...))
-    elseif ex.head ∈ (:if, :&&, :||) || ex.head == :(=) && ex.args[1].head == :call
+    elseif ex.head ∈ (:if, :&&, :||, :(=))
         Expr(ex.head, ex.args[1], map(statify, ex.args[2:end])...)
     elseif ex.head == :ref
         Expr(ex.head, :( StaticNumbers.maybe_wrap($(statify(ex.args[1]))) ), map(statify, ex.args[2:end])...)
