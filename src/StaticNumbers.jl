@@ -25,7 +25,7 @@ struct StaticInteger{X} <: Integer
     end
 end
 StaticInteger{X}(x::Number) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
-Base.@pure StaticInteger(x::Number) = StaticInteger{Integer(x)}()
+@inline StaticInteger(x::Number) = StaticInteger{Integer(x)}()
 
 """
 A `StaticReal` is a `Real` whose value is stored in the type, and which
@@ -38,7 +38,7 @@ struct StaticReal{X} <: Real
     end
 end
 StaticReal{X}(x::Number) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
-Base.@pure StaticReal(x::Number) = StaticReal{Real(x)}()
+@inline StaticReal(x::Number) = StaticReal{Real(x)}()
 
 """
 A `StaticNumber` is a `Number` whose value is stored in the type, and which
@@ -51,7 +51,7 @@ struct StaticNumber{X} <: Number
     end
 end
 StaticNumber{X}(x::Number) where {X} = x==X ? StaticNumber{X}() : throw(InexactError(:StaticNumber, StaticReal{X}, x))
-Base.@pure StaticNumber(x::Number) = StaticNumber{x}()
+@inline StaticNumber(x::Number) = StaticNumber{x}()
 
 """
 `Static{X}` is short-hand for the `Union` of `StaticInteger{X}`, `StaticReal{X}`
@@ -67,18 +67,18 @@ Static{X}() where X = static(X)
 `static(X)` is shorthand for `StaticInteger{X}()`, `StaticReal{X}()` or `StaticNumber{X}()`,
 depending on the type of `X`.
 """
-static(x::StaticInteger) = x
-static(x::StaticReal) = x
-static(x::StaticNumber) = x
-Base.@pure static(x::Integer) = StaticInteger(x)
-Base.@pure static(x::Real) = StaticReal(x)
-Base.@pure static(x::Number) = StaticNumber(x)
-static(x::Irrational) = x # These are already defined by their type.
-Base.@pure static(x::Bool) = x ? StaticInteger{true}() : StaticInteger{false}() # help inference
+@inline static(x::Integer) = StaticInteger{x}()
+@inline static(x::Real) = StaticReal{x}()
+@inline static(x::Number) = StaticNumber{x}()
+@inline static(x::Bool) = x ? StaticInteger{true}() : StaticInteger{false}() # help inference
+@inline static(x::StaticInteger) = x
+@inline static(x::StaticReal) = x
+@inline static(x::StaticNumber) = x
+@inline static(x::Irrational) = x # These are already defined by their type.
 
 # There's no point crating a Val{Static{X}} since any function that would accept
 # it should treat it as equivalent to Val{X}.
-Base.@pure Base.Val(::Static{X}) where X = Val(X)
+@inline Base.Val(::Static{X}) where X = Val(X)
 
 """
 `StaticNumbers.map(f, t::Tuple)` works the same as `Base.map(f, t)`, but does not stop

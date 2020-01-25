@@ -143,8 +143,8 @@ StaticOneTo{N} - Like Base.OneTo{Int}(N) but with the length fixed by the type.
 """
 const StaticOneTo{N} = LengthUnitRange{Int, StaticInteger{0}, StaticInteger{N}}
 
-Base.@pure StaticOneTo(n::Integer) = StaticOneTo{n}()
-Base.@pure StaticOneTo(::StaticInteger{N}) where N = StaticOneTo{N}()
+@inline StaticOneTo(n::Integer) = StaticOneTo{n}()
+@inline StaticOneTo(::StaticInteger{N}) where N = StaticOneTo{N}()
 
 @inline StaticOneTo(r::Base.OneTo) = StaticOneTo(length(r))
 @inline function StaticOneTo(r::AbstractUnitRange{<:Integer})
@@ -241,7 +241,7 @@ const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 @inline Base.getindex(t::Tuple, r::StaticLengthRange{<:Integer}) = ntuple(i -> t[Base.unsafe_getindex(r, i)], length(r))
 
 @inline Base.Tuple(iter::StaticLengthRange) = ntuple(i->Base.unsafe_getindex(iter, i), length(iter))
-@inline Base.Tuple(::StaticOneTo{N}) where {N} = ntuple(identity, static(N))
+@inline Base.Tuple(::StaticOneTo{N}) where {N} = ntuple(identity, Val(N))
 
 @inline function Base.Tuple(g::Base.Generator{<:StaticLengthRange, F}) where {F}
     ntuple(i->g.f(Base.unsafe_getindex(g.iter, i)), length(g.iter))
