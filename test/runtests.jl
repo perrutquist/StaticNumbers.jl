@@ -257,9 +257,11 @@ end
     @test 1 isa StaticOrInt
     @test static(1) isa StaticOrInt
 
-    @test @stat(oftype(static(1), 2)) === static(2)
-    @test @stat(oftype(static(1), 2)) === static(2)
+    @test @stat(oftype(static(1), static(2))) === static(2)
+    @test @stat(oftype(1, static(2))) === static(2)
     @test @stat(oftype(1.0, 2)) === 2.0
+    @test @stat(oftype(static(1.0), 2)) === 2.0
+    @test @stat(oftype(1.0, static(2))) === static(2.0)
 
     ur = LengthUnitRange(2, static(3))
     @test ur isa LengthRange

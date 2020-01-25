@@ -246,6 +246,8 @@ Base.:*(x::Real, ::StaticNumber{Y}) where {Y} = x*Y
     return ntuple(n -> n == i ? v : x[n], static(length(x)))
 end
 
+Base.oftype(::Static{X}, y) where {X} = oftype(X, y)
+
 include("generate_static_methods.jl")
 
 include("LengthRanges.jl")
