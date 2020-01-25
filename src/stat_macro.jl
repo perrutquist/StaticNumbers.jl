@@ -38,6 +38,9 @@ function statify(ex::Expr)
             # TODO: We should handle breadcasted maybe_static.
             # Expr(:., :maybe_static, Expr(:tuple, Symbol(string(ex.args[1])[2:end]), map(statify, ex.args[2:end])...))
             Expr(ex.head, map(statify, ex.args)...)
+        elseif ex.args[1] ∈ (:oftype, :typeof)
+            # Changing the type of the argument(s) makes no sense for these functions 
+            Expr(ex.head, :maybe_static, ex.args...)
         else
             Expr(ex.head, :maybe_static, map(statify, ex.args)...)
         end
@@ -78,6 +81,9 @@ maybe_wrap(x::LengthRange{T,Z,S,L}) where {T,Z<:StaticInteger,S<:StaticInteger,L
 @inline maybe_static(::typeof(first), r::LengthRange) = @stat r.zeroth + r.step
 @inline maybe_static(::typeof(last), r::LengthRange) = @stat r.zeroth + r.step * r.length
 @inline maybe_static(::typeof(first), ::Base.OneTo) = static(1)
+
+maybe_static(::typeof(oftype), ::Static{X}, y) where {X} = static(oftype(X, y))
+maybe_static(::typeof(oftype), x, y) = oftype(x, y)
 
 @inline function maybe_static(getindex, r::LengthRange, i::StaticInteger)
     @boundscheck checkbounds(r, i)

@@ -5,7 +5,7 @@ import Base.Broadcast: broadcasted, DefaultArrayStyle
 
 export Static, static,
        StaticBool, StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
-       @staticnumbers, @generate_static_methods, ofstatictype
+       @staticnumbers, @generate_static_methods
 
 function __init__()
     @require StaticArrays="90137ffa-7385-5640-81b9-e52037218182" include("StaticArrays_glue.jl")
@@ -24,7 +24,7 @@ struct StaticInteger{X} <: Integer
         new{X}()
     end
 end
-StaticInteger{X}(x::Number) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
+@inline StaticInteger{X}(x::Number) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
 @inline StaticInteger(x::Number) = StaticInteger{Integer(x)}()
 
 """
@@ -37,7 +37,7 @@ struct StaticReal{X} <: Real
         new{X}()
     end
 end
-StaticReal{X}(x::Number) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
+@inline StaticReal{X}(x::Number) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
 @inline StaticReal(x::Number) = StaticReal{Real(x)}()
 
 """
@@ -50,7 +50,7 @@ struct StaticNumber{X} <: Number
         new{X}()
     end
 end
-StaticNumber{X}(x::Number) where {X} = x==X ? StaticNumber{X}() : throw(InexactError(:StaticNumber, StaticReal{X}, x))
+@inline StaticNumber{X}(x::Number) where {X} = x==X ? StaticNumber{X}() : throw(InexactError(:StaticNumber, StaticReal{X}, x))
 @inline StaticNumber(x::Number) = StaticNumber{x}()
 
 """
@@ -130,10 +130,6 @@ for ST in (StaticInteger, StaticReal, StaticNumber)
     (::Type{Complex{T}})(::ST{X}) where {T<:Real, X} = Complex{T}(X)
     (::Type{Rational{T}})(::ST{X}) where {T<:Integer, X} = Rational{T}(X)
 end
-
-"ofstatictype(x,y) - like oftype(x,y), but return a `Static` `x` is a `Static`."
-ofstatictype(::Static{X}, y) where {X} = static(oftype(X, y))
-ofstatictype(x, y) = oftype(x, y)
 
 # TODO: Constructors to avoid Static{Static}
 
