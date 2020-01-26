@@ -5,7 +5,7 @@ import Base.Broadcast: broadcasted, DefaultArrayStyle
 
 export Static, static,
        StaticBool, StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
-       @staticnumbers, @generate_static_methods
+       @staticnumbers, @generate_static_methods, unstatic
 
 function __init__()
     @require StaticArrays="90137ffa-7385-5640-81b9-e52037218182" include("StaticArrays_glue.jl")
@@ -248,6 +248,14 @@ end
 
 Base.oftype(::Static{X}, y) where {X} = oftype(X, y)
 
+"""
+`unstatic(x)` returns a non-static version of `x`.
+This function is rarely needed, as most operations on a static number (e.g. `x+0`)
+will also yield a non-static result.
+"""
+unstatic(x) = x
+unstatic(::Static{X}) where {X} = X
+
 include("generate_static_methods.jl")
 
 include("LengthRanges.jl")
@@ -255,5 +263,7 @@ include("LengthRanges.jl")
 include("trystatic.jl")
 
 include("stat_macro.jl")
+
+include("deprecated.jl")
 
 end # module

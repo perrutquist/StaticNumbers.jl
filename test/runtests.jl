@@ -19,6 +19,9 @@ using Test
 
     @test static(true) == true
     @test static(false) == false
+
+    @test unstatic(1) === 1
+    @test unstatic(static(1)) === 1
 end
 
 @testset "static math" begin
