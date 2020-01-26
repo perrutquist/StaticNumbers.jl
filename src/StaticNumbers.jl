@@ -258,11 +258,11 @@ unstatic(::Static{X}) where {X} = X
 
 include("generate_static_methods.jl")
 
+include("stat_macro.jl")
+
 include("LengthRanges.jl")
 
 include("trystatic.jl")
-
-include("stat_macro.jl")
 
 include("deprecated.jl")
 

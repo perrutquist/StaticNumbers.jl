@@ -225,14 +225,8 @@ end
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::Integer) = LengthStepRange(static(a-s), s, (b-a)÷s+1)
 
-# TODO: range(start, length=length) implemented with statifc numbers:
-
-# NOTE: This does not use Base.twiceprecision because that type is not <: Real. Will lead to some loss of precision, unfortunately.
-# TODO: Fix infinte iterations
-# @inline function Base.:(:)(a::Static{A}, s::Static{S}, b::Static{B}) where {A,S,B}
-#     r = A:S:B
-#     LengthStepRange(static(zeroth(r)), s, static(length(r)))
-# end
+@inline Base._range(start::Real, step::Nothing, stop::Nothing, length::StaticInteger) = LengthUnitRange(@stat(start-1), length)
+@inline Base._range(start::Real, step::Real, stop::Nothing, length::StaticInteger) = LengthStepRange(@stat(start-step), step, length)
 
 const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 
@@ -268,4 +262,20 @@ end
 
 @inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}},F}) where {F}
     ntuple(i -> g.f(Base.unsafe_getindex(g.iter, i)), static(length(g)))
+end
+
+# Utility functions for the @stat macro
+@inline maybe_wrap(x) = x
+@inline maybe_wrap(x::LengthRange{T,Z,S,L}) where {T,Z<:StaticInteger,S<:StaticInteger,L} = MaybeStatic(x)
+
+@inline maybe_static(::typeof(first), r::LengthRange) = @stat r.zeroth + r.step
+@inline maybe_static(::typeof(last), r::LengthRange) = @stat r.zeroth + r.step * r.length
+@inline maybe_static(::typeof(first), ::Base.OneTo) = static(1)
+
+@inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::StaticInteger) = static(r.parent[i])
+@inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::LengthRange) = maybe_wrap(getindex(r.parent, i))
+
+@inline function maybe_static(getindex, r::LengthRange, i::StaticInteger)
+    @boundscheck checkbounds(r, i)
+    @stat r.zeroth + i*r.step
 end

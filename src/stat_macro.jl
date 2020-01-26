@@ -65,11 +65,6 @@ struct MaybeStatic{T}
     parent::T
 end
 
-maybe_wrap(x) = x
-maybe_wrap(x::LengthRange{T,Z,S,L}) where {T,Z<:StaticInteger,S<:StaticInteger,L} = MaybeStatic(x)
-
-@inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::StaticInteger) = static(r.parent[i])
-@inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::LengthRange) = maybe_wrap(getindex(r.parent, i))
 @inline Base.getindex(r::MaybeStatic, args...) = getindex(r.parent, args...)
 @inline Base.step(r::MaybeStatic) = step(r.parent)
 @inline Base.length(r::MaybeStatic) = length(r.parent)
@@ -77,16 +72,6 @@ maybe_wrap(x::LengthRange{T,Z,S,L}) where {T,Z<:StaticInteger,S<:StaticInteger,L
 @inline Base.first(r::MaybeStatic) = maybe_static(first, r.parent)
 @inline Base.last(r::MaybeStatic) = maybe_static(last, r.parent)
 
-# Some functions need pass-through of the @stat macro...
-@inline maybe_static(::typeof(first), r::LengthRange) = @stat r.zeroth + r.step
-@inline maybe_static(::typeof(last), r::LengthRange) = @stat r.zeroth + r.step * r.length
-@inline maybe_static(::typeof(first), ::Base.OneTo) = static(1)
-
 maybe_static(::typeof(oftype), x, y) = oftype(x, y)
 maybe_static(::typeof(oftype), x, y::Static) = static(oftype(x, y))
 maybe_static(::typeof(oftype), ::Static{X}, ::Static{Y}) where {X,Y} = static(oftype(X, Y))
-
-@inline function maybe_static(getindex, r::LengthRange, i::StaticInteger)
-    @boundscheck checkbounds(r, i)
-    @stat r.zeroth + i*r.step
-end

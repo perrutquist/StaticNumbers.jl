@@ -213,8 +213,18 @@ end
 
     # Test StaticRanges
 
-    @test staticlength(1:3) isa LengthRange
+    @test range(1, length=static(3)) === staticlength(1:3)
+    @test range(1, length=static(3)) == 1:3
+    @test range(3, step=static(2), length=static(3)) == 3:2:7
+    @test range(3, step=2, length=static(3)) == 3:2:7
+    @test range(1, length=3) == 1:3
+    @test length(range(1, length=static(3))) === static(3)
     @test length(staticlength(1:3)) === static(3)
+
+    @test range(2, length=static(3)) == 2:4
+    @test typeof(range(1, length=static(3))) == typeof(range(2, length=static(3)))
+
+    @test staticlength(1:3) isa LengthRange
     @test staticlength(Base.OneTo(3)) isa LengthRange
     @test length(staticlength(Base.OneTo(3))) === static(3)
 
