@@ -108,8 +108,11 @@ even harder to constant-propagate the integer input into `f`.
     :( Base.@_inline_meta; $v )
 end
 
-# Functions that take only `Int` may be too restrictive.
-# The StaticOrInt type union is often a better choice.
+"""
+`StaticOrInt` is the type union of `Int` and `StaticInteger`
+
+(Functions that take only `Int` may be too restrictive.)
+"""
 const StaticOrInt = Union{StaticInteger, Int}
 
 # Promotion
@@ -159,7 +162,9 @@ end
 Base.widen(::Static{X}) where {X} = X isa Bool ? X : widen(X)
 
 # It's a pity there's no AbstractBool supertype.
+"StaticBool is a shorthand for Union{StaticInteger{false}, StaticInteger{true}}"
 const StaticBool = Union{StaticInteger{false}, StaticInteger{true}}
+"StaticOrBool can be either a `Bool` or a `StaticBool`"
 const StaticOrBool = Union{StaticBool, Bool}
 
 Base.:!(x::StaticBool) = !Bool(x)

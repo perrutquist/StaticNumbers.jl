@@ -73,7 +73,7 @@ function genstaticmethods2(funs, args, targets)
 end
 
 """
-@generate_static_methods numbers 1argfuns 2argfuns
+    @generate_static_methods numbers 1argfuns 2argfuns
 
 This macro creates methods that return `Static` numbers when
 functions are called with only `Static` arguments.
@@ -103,18 +103,6 @@ cos(::StaticInteger{0}) = StaticInteger{1}()
 must be imported before they can be extended.)
 """
 macro generate_static_methods(args::Expr, funs1::Expr, funs2::Expr, targets::Expr=:(()))
-    args.head == :tuple || error("Expected a Tuple of numbers")
-    funs1.head == :tuple || error("Expected a Tuple of 1-arg functions")
-    funs2.head == :tuple || error("Expected a Tuple of 2-arg functions")
-    targets.head == :tuple || error("Expected a Tuple of target numbers")
-    return esc(Expr(:block,vcat(
-       genstaticmethods1(funs1.args, args.args, targets.args),
-       genstaticmethods2(funs2.args, args.args, targets.args)
-       )...))
-end
-
-# We renamed staticnumbers -> generate_static_methods, but keep the old macro for a short while.
-macro staticnumbers(args::Expr, funs1::Expr, funs2::Expr, targets::Expr=:(()))
     args.head == :tuple || error("Expected a Tuple of numbers")
     funs1.head == :tuple || error("Expected a Tuple of 1-arg functions")
     funs2.head == :tuple || error("Expected a Tuple of 2-arg functions")

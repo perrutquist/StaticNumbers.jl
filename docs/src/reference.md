@@ -14,6 +14,5 @@ StaticReal
 StaticNumber
 StaticOrInt
 StaticOrBool
-@staticnumbers
 @generate_static_methods
 ```
