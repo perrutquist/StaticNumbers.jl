@@ -3,8 +3,8 @@
 [![Build Status](https://travis-ci.org/perrutquist/StaticNumbers.jl.svg?branch=master)](https://travis-ci.org/perrutquist/StaticNumbers.jl)
 [![codecov.io](http://codecov.io/github/perrutquist/StaticNumbers.jl/coverage.svg?branch=master)](http://codecov.io/github/perrutquist/StaticNumbers.jl?branch=master)
 
-This package provides `Number` datatypes which store their data in a
-type parameter. These are referred to as `StaticNumber`s. (The word
+This package provides number datatypes which store their data in a
+type parameter. These are referred to as static numbers. (The word
 "static" has lots of uses in computer science. Here, it means
 that the number is constant at runtime.)
 
@@ -46,13 +46,13 @@ respectively. The `Union` type `Static` can be used to refer to them all.
 For brevity, all three types are displayed as `static(X)`, and it is also
 recommended to create them using this syntax.
 
-Note: At the moment, the type union is named `Static`, while the function
-that creates static variables is named `static`.
+Note: At the moment, the type union is named `Static` with a capital S, while the function
+that creates static variables is named `static` in lowercase.
 
 By default, any operation on a `Static` will result in a non-`Static` type.
 For example, `static(2)+static(2)` gives `4`, not `static(4)`.
 
-The macro `@stat` makes the result of a computation `Static` when all arguments are static
+The macro `@stat` makes the result of a computation a `Static` when all arguments are static
 or literals. For example:
 ```julia
 i = 2
@@ -81,7 +81,7 @@ t[2:end-1] # much less performant (as of Julia 1.3.1)
 ```
 (Indexing tuples without static numbers will work better in the future, see [pull request 31138](https://github.com/JuliaLang/julia/pull/31138).)
 
-When creating `Static` numbers, it is important to consider whether the type
+When creating static numbers, it is important to consider whether the type
 system will be able to work efficiently. For example, `f(static(x), y)` is
 likely slower than `f(x, y)` even when called repeatedly with the same `x`.
 A specialized method of `f` is created for this value of `x`, and the function
@@ -93,7 +93,7 @@ fast. The construct `x==0 ? static(0) : x` will belong to `Union{typeof(x), stat
 and Julia is able to dispatch efficiently on small type unions.
 Shorthands for this construct are `f(trystatic(x, 0), y)` and `f(x ⩢ 0, y)`.
 
-It is important not to make the set of `Static` numbers too large,
+It is important not to make the set of static numbers (i.e. types) too large,
 as [this can lead to a lot of compilation overhead](https://docs.julialang.org/en/v1/manual/performance-tips/index.html#The-dangers-of-abusing-multiple-dispatch-(aka,-more-on-types-with-values-as-parameters)-1).
 The `@stat` macro can be dangerous when used inside loops or in recursive functions.
 
@@ -105,7 +105,7 @@ The `Unsigned` datatype currently does not work well with static numbers.
 For this reason  the `@stat` macro does turn unsigned numbers into static.
 (This is work in progress, and subjec to change.)
 
-`Static` numbers are only fast when fully specified. A `Vector{Static}`
+Static numbers are only fast when fully specified. A `Vector{Static}`
 is much slower than a `Vector{Int}`.
 (A `Vector{StaticInteger{1}}` is fast and requires very little memory,
 but on the other hand it can only store the number one.)
