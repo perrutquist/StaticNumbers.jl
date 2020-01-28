@@ -18,24 +18,7 @@ arithmetic operations. (For example `static(1) + 1` equals `2`.)
 This makes it possible to use them with functions that were not specifically
 written to accept value arguments, essentially forcing the Julia compiler to do
 [constant propagation](https://en.wikipedia.org/wiki/Constant_folding) in
-situations where it might not otherwise have done so. For example, we can
-abuse it to make the compiler compute the 20:th Fibonacci number:
-```julia
-julia> using StaticNumbers
-
-julia> fib(n) = n <= 1 ? n : fib(static(n-1)) + fib(static(n-2))
-fib (generic function with 1 method)
-
-julia> @code_llvm fib(static(20))
-
-;  @ REPL[2]:1 within `fib'
-define i64 @julia_fib_12331() {
-top:
-  ret i64 6765
-}
-```
-(In the process, the compiler builds a [memoization](https://en.wikipedia.org/wiki/Memoization)
-table of the first 20 Fibonacci numbers as part of the dispatch table.)
+situations where it might not otherwise have done so. 
 
 Under the surface, there are three `Static` datatypes: `StaticInteger`,
 `StaticReal`, and `StaticNumber`, subtypes of `Integer`, `Real` and `Number`

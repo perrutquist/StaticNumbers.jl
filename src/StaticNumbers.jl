@@ -256,7 +256,7 @@ Base.oftype(::Static{X}, y) where {X} = oftype(X, y)
 """
 `unstatic(x)` returns a non-static version of `x`.
 This function is rarely needed, as most operations on a static number (e.g. `x+0`)
-will also yield a non-static result.
+will yield a non-static result.
 """
 unstatic(x) = x
 unstatic(::Static{X}) where {X} = X
