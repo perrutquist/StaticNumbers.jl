@@ -454,6 +454,11 @@ end
     # At the moment, we don't want @stat to create static unsigned numbers. (Subject to change.)
     @test UInt(1) === @stat UInt(1)
     @test UInt(1) === @stat unsigned(1)
+
+    T = (1,2,3,4)
+    @test (2,3) === @stat T[2:end-1]
+    @test (2,3) === @stat T[range(2, length=2)]
+    Test.@inferred T[range(2, length=static(2))]
 end
 
 tuple_test(n) = Tuple(i for i in static(1):n)
