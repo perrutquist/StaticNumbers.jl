@@ -26,7 +26,7 @@ end
         # Test of trystatic(lastindex, x)
         xi = @stat x[1:end-2]
         @test xi == v
-        @test typeof(xi) == typeof(v)
+        @test (xi isa Array && x isa Array) || (xi isa MArray && x isa MArray)
     end
 
     for x in (@SVector([1, 2, 3, 4]), )

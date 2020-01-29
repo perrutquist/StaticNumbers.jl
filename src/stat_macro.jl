@@ -35,7 +35,6 @@ function calls into `trystatic`.
 statify(ex) = ex
 statify(x::Number) = :( static($x) )
 statify(x::Unsigned) = x
-statify(s::Symbol) = s == :end ? :( static($s) ) : s
 function statify(ex::Expr)
     if ex.head == :call
         if first(string(ex.args[1])) == '.'  #for example: .+
@@ -53,7 +52,7 @@ function statify(ex::Expr)
     elseif ex.head ∈ (:if, :&&, :||, :(=))
         Expr(ex.head, ex.args[1], map(statify, ex.args[2:end])...)
     elseif ex.head == :ref
-        Expr(ex.head, :( StaticNumbers.maybe_wrap($(statify(ex.args[1]))) ), map(statify, ex.args[2:end])...)
+        Expr(ex.head, :( StaticNumbers.MaybeStatic($(statify(ex.args[1]))) ), map(statify, ex.args[2:end])...)
     else
         Expr(ex.head, map(statify, ex.args)...)
     end
@@ -69,10 +68,12 @@ struct MaybeStatic{T}
     parent::T
 end
 
-@inline Base.getindex(r::MaybeStatic, args...) = getindex(r.parent, args...)
-@inline Base.step(r::MaybeStatic) = step(r.parent)
-@inline Base.length(r::MaybeStatic) = length(r.parent)
-@inline Base.unsafe_length(r::MaybeStatic) = length(r.parent)
+@inline Base.getindex(r::MaybeStatic, args...) = maybe_static(getindex, r.parent, args...)
+@inline Base.step(r::MaybeStatic) = maybe_static(step, r.parent)
+@inline Base.length(r::MaybeStatic) = maybe_static(length, r.parent)
+@inline Base.unsafe_length(r::MaybeStatic) = maybe_static(Base.unsafe_length, r.parent)
+@inline Base.firstindex(r::MaybeStatic) = maybe_static(firstindex, r.parent)
+@inline Base.lastindex(r::MaybeStatic) = maybe_static(lastindex, r.parent)
 @inline Base.first(r::MaybeStatic) = maybe_static(first, r.parent)
 @inline Base.last(r::MaybeStatic) = maybe_static(last, r.parent)
 
