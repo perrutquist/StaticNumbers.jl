@@ -16,5 +16,5 @@ makedocs(
 # See "Hosting Documentation" and deploydocs() in the Documenter manual
 # for more information.
 deploydocs(
-    repo = "git@github.com:perrutquist/StaticNumbers.jl.git"
+    repo = "github.com:perrutquist/StaticNumbers.jl.git"
 )
