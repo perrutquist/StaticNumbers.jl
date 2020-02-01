@@ -30,7 +30,7 @@ As a more complicated example, we'll look at how static numbers together with ge
 
 The following example is based on [this blog post](http://kristofferc.github.io/post/intrinsics/) describing how to use [SIMD.jl](https://github.com/eschnett/SIMD.jl) to multiply 3-by-3 matrices even faster than what [StaticArrays.jl](https://github.com/JuliaArrays/StaticArrays.jl) does. We want to generalize that example to arbitrary (but small) matrix sizes.
 
-Note: For matrix sizes other than 3x3, this example currenlty requres building Julia manually with [#34473](https://github.com/JuliaLang/julia/pull/34473) and [#34490](https://github.com/JuliaLang/julia/pull/34490). Hopefully both of those will be in Julia 1.4.0 to be released soon.
+Note: For matrix sizes other than 3x3, this example currenlty requres Julia with [#34473](https://github.com/JuliaLang/julia/pull/34473) and [#34490](https://github.com/JuliaLang/julia/pull/34490). These are in the latest nightly builds (1.5.0-DEV.206 and later) and hopefully they will also be in 1.4.0 when it is released.
 
 We start by defining the type `Mat`, which we'll use to hold our matrices, plus a few methods are needed to make `Mat` display and convert to other matrix types:
 ```julia
@@ -108,4 +108,4 @@ julia> @btime mul_as_Mat($v, $v);
 ```
 This is a bit slower (probably because loading data from a view involves calculating offsets based on the stride of the underlying matrix) but still this is an impressive result given that we did not write any spacialized code for views.
 
-Footnote: Our example uses the same type of vectorization regardless of the matrix sizes, which is of course not optimal. (A 1x4 matrix is far better represented as one lenght-4 vector than 4 lenght-1 vectors, for example.) A more advanced `*` function would use a cost model to select the vectorization that works best for the sizes involved, like [LoopVectorization](https://github.com/chriselrod/LoopVectorization.jl) does.
+Footnote: Our example uses the same type of vectorization regardless of the matrix sizes, which is of course not optimal. (A 1x4 matrix is far better represented as one length-4 vector than 4 length-1 vectors, for example.) A more advanced `*` function would use a cost model to select the vectorization that works best for the sizes involved, like [LoopVectorization](https://github.com/chriselrod/LoopVectorization.jl) does.

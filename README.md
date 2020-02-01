@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/perrutquist/StaticNumbers.jl.svg?branch=master)](https://travis-ci.org/perrutquist/StaticNumbers.jl)
 [![codecov.io](http://codecov.io/github/perrutquist/StaticNumbers.jl/coverage.svg?branch=master)](http://codecov.io/github/perrutquist/StaticNumbers.jl?branch=master)
 
-[Documentation](https://perrutquist.github.io/StaticNumbers.jl/)
+[Documentation](https://perrutquist.github.io/StaticNumbers.jl/index.html)
 
 This package provides number datatypes which store their data in a
 type parameter. These are referred to as static numbers. (The word
