@@ -133,10 +133,8 @@ end
     LengthUnitRange{T}(zeroth(r) + zeroth(s)*step(r), length(s))
 end
 
-@inline function Base.getindex(r::AbstractUnitRange{T}, s::LengthUnitRange{TS,Z,StaticInteger{L}}) where {T,TS<:Integer,Z,L} #disambig
-    @boundscheck checkbounds(r, s)
-    LengthUnitRange{T}(zeroth(r) + zeroth(s)*step(r), length(s))
-end
+@inline Base.getindex(r::Base.IdentityUnitRange, s::LengthUnitRange{<:Integer}) = (@boundscheck checkbounds(r, s); s) #  disambig
+@inline Base.getindex(r::Base.Slice, s::LengthUnitRange{<:Integer}) = (@boundscheck checkbounds(r, s); s) #  disambig
 
 """
 StaticOneTo{N} - Like Base.OneTo{Int}(N) but with the length fixed by the type.
@@ -224,8 +222,10 @@ end
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::Integer) = LengthStepRange(static(a-s), s, (b-a)÷s+1)
 
 @inline Base._range(start::Real, step::Nothing, stop::Nothing, length::StaticInteger) = LengthUnitRange(@stat(start-1), length)
+@inline Base._range(start::AbstractFloat, step::Nothing, stop::Nothing, length::StaticInteger) = LengthUnitRange(@stat(start-1), length) #disambig
 @inline Base._range(start::T, step::T, stop::Nothing, length::StaticInteger) where {T<:Real} = LengthStepRange(@stat(start-step), step, length)
 @inline Base._range(start::T, step::T, stop::Nothing, length::StaticInteger) where {T<:AbstractFloat} = LengthStepRange(@stat(start-step), step, length) # disambig
+@inline Base._range(start::T, step::T, stop::Nothing, length::StaticInteger) where {T<:Union{Float16, Float32, Float64}} = LengthStepRange(@stat(start-step), step, length) # disambig
 
 const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 

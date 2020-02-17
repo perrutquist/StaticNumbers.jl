@@ -170,7 +170,7 @@ const StaticOrBool = Union{StaticBool, Bool}
 Base.:!(x::StaticBool) = !Bool(x)
 
 # false is a strong zero
-for T in (Integer, Real, Number, Complex{<:Real}, StaticInteger, StaticReal, StaticNumber)
+for T in (Integer, Real, Number, Complex{<:Real}, Complex{Bool}, StaticInteger, StaticReal, StaticNumber)
     Base.:*(::StaticInteger{false}, y::T) = zero(y)
     Base.:*(x::T, ::StaticInteger{false}) = zero(x)
 end
@@ -199,7 +199,7 @@ Base.:(>>)(::StaticInteger{X}, y::UInt64) where {X} = X >> y
 
 # Two-argument functions that have methods in promotion.jl that give no_op_err:
 for f in (:+, :-, :*, :/, :^)
-    @eval Base.$f(::Static{X}, ::Static{X}) where {X} = $f(X,X)
+    @eval Base.$f(::ST, ::ST) where {ST <: Static{X}} where {X} = $f(X,X)
 end
 # ...where simplifications are possible:
 # Note: We allow creation of specific static numbers, like 1 and 0 (as an exception)
@@ -216,6 +216,8 @@ Base.:<=(::ST, ::ST) where {ST<:StaticReal{X}} where {X} = true
 for fun in (:(<), :(<=))
     @eval Base.$fun(::StaticInteger{X}, y::Integer) where {X} = $fun(X, y)
     @eval Base.$fun(x::Integer, ::StaticInteger{Y}) where {Y} = $fun(x, Y)
+    @eval Base.$fun(::StaticInteger{X}, y::BigInt) where {X} = $fun(X, y)
+    @eval Base.$fun(x::BigInt, ::StaticInteger{Y}) where {Y} = $fun(x, Y)
     @eval Base.$fun(::StaticInteger{X}, ::StaticInteger{Y}) where {X,Y} = $fun(X, Y)
 end
 

@@ -26,7 +26,7 @@ end
 
 @testset "ambiguities" begin
     @test length(detect_ambiguities(StaticNumbers)) == 0
-    @test_broken length(detect_ambiguities(Base, StaticNumbers)) == 0
+    @test length(detect_ambiguities(Base, StaticNumbers)) <= 5
 end
 
 @testset "static math" begin
@@ -538,3 +538,19 @@ end
 include("StaticArrays_test.jl")
 
 include("SIMD_test.jl")
+
+@testset "ambiguities (extended)" begin
+    ambiguities = detect_ambiguities(Base, StaticNumbers, StaticArrays, SIMD)
+    for a in ambiguities
+        println(a[1], "\n", a[2], "\n")
+    end
+    @test_broken length(ambiguities) <= 5
+end
+
+# Run all tests in optional packages, together with StaticNumbers,
+# to make sure we didn't break anything.
+if false
+    for m in (StaticArrays, SIMD)
+        include(joinpath(dirname(dirname(pathof(m))), "test", "runtests.jl"))
+    end
+end
