@@ -548,7 +548,7 @@ include("SIMD_test.jl")
     for a in ambiguities
         println(a[1], "\n", a[2], "\n")
     end
-    @test length(ambiguities) <= 5
+    @test length(ambiguities) <= 6
 end
 
 # Run all tests in optional packages, together with StaticNumbers,

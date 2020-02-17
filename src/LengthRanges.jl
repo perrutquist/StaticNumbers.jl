@@ -133,8 +133,10 @@ end
     LengthUnitRange{T}(zeroth(r) + zeroth(s)*step(r), length(s))
 end
 
-@inline Base.getindex(r::Base.IdentityUnitRange, s::LengthUnitRange{<:Integer}) = (@boundscheck checkbounds(r, s); s) #  disambig
-@inline Base.getindex(r::Base.Slice, s::LengthUnitRange{<:Integer}) = (@boundscheck checkbounds(r, s); s) #  disambig
+if VERSION >= v"1.1"
+    @inline Base.getindex(r::Base.IdentityUnitRange, s::LengthUnitRange{<:Integer}) = (@boundscheck checkbounds(r, s); s) #  disambig
+    @inline Base.getindex(r::Base.Slice, s::LengthUnitRange{<:Integer}) = (@boundscheck checkbounds(r, s); s) #  disambig
+end
 
 """
 StaticOneTo{N} - Like Base.OneTo{Int}(N) but with the length fixed by the type.
