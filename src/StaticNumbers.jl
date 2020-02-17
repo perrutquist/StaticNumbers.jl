@@ -228,7 +228,8 @@ for T in (Bool, Int32, Int64, Float32, Float64, ComplexF32, ComplexF64, Irration
     Base.:^(x::T, ::StaticInteger{p}) where {p} = Base.literal_pow(^, x, Val(p))
 end
 Base.:^(x::Static{X}, ::StaticInteger{p}) where {X,p} = Base.literal_pow(^, X, Val(p))
-Base.:^(x::ST, ::ST) where {ST<:StaticInteger{X}} where {X} = Base.literal_pow(^, X, Val(X)) #disambig
+Base.:^(x::ST, ::ST) where {ST<:StaticInteger{p}} where {p} = Base.literal_pow(^, x, Val(p)) #disambig
+Base.:^(::Irrational{:ℯ}, p::StaticInteger) = exp(p) #disambig
 
 # For brevity, all `Static` numbers are displayed as `static(X)`, rather than, for
 # example, `StaticInteger{X}()`. It is possible to discern between the different

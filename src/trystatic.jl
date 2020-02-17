@@ -24,12 +24,14 @@ NOTE: When the list of y-values is longer than one, y1, y2, ... must be `Static`
 numbers, or inferrence will not work. (In which case `trystatic` is not more
 efficient than `static(x)`.)
 """
-@inline trystatic(x::Static, ys::Number...) = x
-@inline trystatic(x::Static, y::Static) = x #disambig
-@inline trystatic(x::Number) = x
-@inline trystatic(x::Number, y::Static) = x==y ? y : x
-@inline trystatic(x::Real, y::Static{NaN}) = isnan(x) ? y : x
-@inline trystatic(x::Number, y::Number) = trystatic(x, static(y))
+@inline function trystatic(x::Number, y::Number)
+    if isnan(y)
+        isnan(x) ? static(NaN) : x
+    else
+        x==y ? static(y) : x
+    end
+end
+
 @inline trystatic(x::Number, y::Number, ys::Number...) = trystatic(trystatic(x, y), ys...)
 
 @inline ⩢(x, y) = trystatic(x,y)
@@ -47,13 +49,14 @@ integer from the range. (Otherwise, `x` is returned unchanged.)
 
 NOTE: The range must be completely static, or inferrence will not work.
 """
+@inline trystatic(x) = x
 @inline trystatic(x::StaticInteger, r::OrdinalRange{<:Integer, <:Integer}) = x
 @inline trystatic(x::Integer, r::OrdinalRange{<:Integer, <:Integer}) =
     trystatic(x::Integer, LengthStepRange(static(zeroth(r)), static(step(r)), static(length(r))))
-@inline trystatic(x::Integer, r::LengthStepRange{<:Integer, <:StaticInteger, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
-@inline trystatic(x::Integer, r::UnitRange{<:Integer}) =
-    trystatic(x::Integer, LengthUnitRange(static(zeroth(r)), static(length(r))))
+@inline trystatic(x::Integer, r::LengthStepRange{<:Integer, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
+@inline trystatic(x::StaticInteger, r::LengthStepRange{<:Integer, <:StaticInteger, <:StaticInteger}) = x # disambig
 @inline trystatic(x::Integer, r::LengthUnitRange{<:Integer, <:StaticInteger, <:StaticInteger}) = x in r ? tostatic(x, r) : x
+@inline trystatic(x::StaticInteger, r::LengthUnitRange{<:Integer, <:StaticInteger, <:StaticInteger}) = x # disambig
 
 #@inline tostatic(x::Integer, r::StepRange) = tostatic(x, LengthStepRange(static(zeroth(r)), static(step(r)), static(lenght(r)))
 #@inline tostatic(x::Integer, r::UnitRange) = tostatic(x, LengthUnitRange(static(zeroth(r)), static(lenght(r)))
@@ -63,7 +66,30 @@ tostatic(x, r)
 Returns a `Static` integer, equal to `x` from the range `r`. If no element in
 `r` is equal to `x`, then the behaviour of this function is undefined.
 """
-@inline tostatic(x::Static, r::OrdinalRange{<:Integer, <:Integer}) = x
+@generated function tostatic(x::Integer, r::LengthStepRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
+    if x == StaticInteger
+        quote
+            x
+        end
+    else
+        quote
+            Base.@_inline_meta
+            $(tostaticexpr(Z, S, L))
+        end
+    end
+end
+@generated function tostatic(x::Integer, r::LengthUnitRange{<:Integer, StaticInteger{Z}, StaticInteger{L}}) where {Z, L}
+    if x == StaticInteger
+        quote
+            x
+        end
+    else
+        quote
+            Base.@_inline_meta
+            $(tostaticexpr(Z, 1, L))
+        end
+    end
+end
 
 # Simpler variation:
 #@inline tostatic(x::Static, r) = x
@@ -75,19 +101,6 @@ function tostaticexpr(z, s, l, blk=identity, x=:x)
     else
         mid = l÷2
         :( $(s>0 ? :(<=) : :(>=))($x, $(z + s*mid)) ? $(tostaticexpr(z, s, mid, blk, x)) : $(tostaticexpr(z+mid*s, s, l-mid, blk, x)) )
-    end
-end
-
-@generated function tostatic(x::Integer, r::LengthStepRange{<:Integer, StaticInteger{Z}, StaticInteger{S}, StaticInteger{L}}) where {Z, S, L}
-    quote
-        Base.@_inline_meta
-        $(tostaticexpr(Z, S, L))
-    end
-end
-@generated function tostatic(x::Integer, r::LengthUnitRange{<:Integer, StaticInteger{Z}, StaticInteger{L}}) where {Z, L}
-    quote
-        Base.@_inline_meta
-        $(tostaticexpr(Z, 1, L))
     end
 end
 

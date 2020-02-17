@@ -217,16 +217,15 @@ broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
 # numbers (zeroth and length).
 # This is an exception to the rule that we don't create new static nubmers
 # unless the user asks for it explicitly.
-for S in (StaticInteger, StaticReal)
-    @inline Base.:(:)(a::S, b::Real) = a:static(1):b
-    @inline Base.:(:)(a::Real, b::S) = a:static(1):b
-    @inline Base.:(:)(a::S, b::S) = a:static(1):b
+for S in (StaticInteger, StaticReal), T in (StaticInteger, StaticReal)
+    @inline Base.:(:)(a::S, b::T) = a:static(1):b
 end
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::Integer) = LengthStepRange(static(a-s), s, (b-a)÷s+1)
 
 @inline Base._range(start::Real, step::Nothing, stop::Nothing, length::StaticInteger) = LengthUnitRange(@stat(start-1), length)
-@inline Base._range(start::Real, step::Real, stop::Nothing, length::StaticInteger) = LengthStepRange(@stat(start-step), step, length)
+@inline Base._range(start::T, step::T, stop::Nothing, length::StaticInteger) where {T<:Real} = LengthStepRange(@stat(start-step), step, length)
+@inline Base._range(start::T, step::T, stop::Nothing, length::StaticInteger) where {T<:AbstractFloat} = LengthStepRange(@stat(start-step), step, length) # disambig
 
 const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
 
@@ -272,7 +271,7 @@ end
 @inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::StaticInteger) = static(r.parent[i])
 @inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::LengthRange) = maybe_wrap(getindex(r.parent, i))
 
-@inline function maybe_static(getindex, r::LengthRange, i::StaticInteger)
+@inline function maybe_static(::typeof(getindex), r::LengthRange, i::StaticInteger)
     @boundscheck checkbounds(r, i)
     @stat r.zeroth + i*r.step
 end

@@ -58,7 +58,7 @@ end
     @test g(static(2)) === SVector{2}([1,4])
     Test.@inferred(g(static(2)))
 
-    @test SVector(i^2 for i in static(1):3) === SVector{3}([1, 4, 9])
+    @test SVector(i^2 for i in static(1):static(3)) === SVector{3}([1, 4, 9])
 end
 
 @inline function testmul(A::SMatrix, B::SMatrix)

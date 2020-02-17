@@ -24,6 +24,11 @@ using Test
     @test unstatic(static(1)) === 1
 end
 
+@testset "ambiguities" begin
+    @test length(detect_ambiguities(StaticNumbers)) == 0
+    @test_broken length(detect_ambiguities(Base, StaticNumbers)) == 0
+end
+
 @testset "static math" begin
     for x in (-1.0, -1, 0, 0.0, false, true, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im, Inf)
         for f in (:round, :ceil, :floor, :sign, :cos, :sin, :log, :exp, :isfinite, :isnan, :abs, :abs2, :iszero, :isone)
