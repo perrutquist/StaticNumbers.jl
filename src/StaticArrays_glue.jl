@@ -18,7 +18,7 @@ static(r::SUnitRange) = LengthUnitRange(r)
 
 Size(::LengthRange{T,Z,S,StaticInteger{L}}) where {T,Z,S,L} = Size(Int(L))
 Size(s::Tuple{Vararg{StaticInteger}}) = Size(Int.(s))
-Size(s::StaticInteger...) = Size(s)
+Size(s::StaticInteger, ss::StaticInteger...) = Size((s, ss...))
 static(::Size{S}) where {S} = static.(S)
 
 for AT in (Array, AbstractArray), RT in (LengthStepRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}, LengthUnitRange{T,Z,StaticInteger{L}} where {T,Z,L})
