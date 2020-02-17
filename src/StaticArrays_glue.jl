@@ -21,12 +21,12 @@ Size(s::Tuple{StaticInteger, Vararg{StaticInteger}}) = Size(Int.(s))
 Size(s::StaticInteger, ss::StaticInteger...) = Size((s, ss...))
 static(::Size{S}) where {S} = static.(S)
 
-for AT in (Array, AbstractArray), RT in (LengthStepRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}, LengthUnitRange{T,Z,StaticInteger{L}} where {T,Z,L})
+for AT in (Array, MArray), RT in (LengthStepRange{<:Integer,Z,S,<:StaticInteger} where {Z,S}, LengthUnitRange{<:Integer,Z,<:StaticInteger} where {Z})
     Base.getindex(A::AT, r::RT) = MVector(ntuple(i -> A[r[i]], length(r)))
 end
 
-for RT in (LengthStepRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}, LengthUnitRange{T,Z,StaticInteger{L}} where {T,Z,L})
-    Base.getindex(A::SArray, r::RT) = SVector(ntuple(i -> A[r[i]], length(r)))
+for AT in (SArray,), RT in (LengthStepRange{<:Integer,Z,S,<:StaticInteger} where {Z,S}, LengthUnitRange{<:Integer,Z,<:StaticInteger} where {Z})
+    Base.getindex(A::AT, r::RT) = SVector(ntuple(i -> A[r[i]], length(r)))
 end
 
 # Allow "end" to become static when indexing into static arrays

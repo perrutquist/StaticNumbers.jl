@@ -25,8 +25,12 @@ using Test
 end
 
 @testset "ambiguities" begin
+    ambiguities = detect_ambiguities(Base, StaticNumbers)
+    for a in ambiguities
+        println(a[1], "\n", a[2], "\n")
+    end
     @test length(detect_ambiguities(StaticNumbers)) == 0
-    @test length(detect_ambiguities(Base, StaticNumbers)) <= 5
+    @test length(ambiguities) <= 5
 end
 
 @testset "static math" begin
@@ -347,13 +351,13 @@ end
 end
 
 # Test with a new numeric type
-struct MyType <: Real
+struct MyType1 <: Real
     x::Float64
 end
 
 @testset "various II" begin
-    @test MyType(static(3)) === MyType(3)
-    @test MyType(static(3.0)) === MyType(3.0)
+    @test MyType1(static(3)) === MyType1(3)
+    @test MyType1(static(3.0)) === MyType1(3.0)
 
     @test maybe_static(+, 2, 2) === 4
     @test maybe_static(+, static(2), 2) === 4
@@ -544,13 +548,15 @@ include("SIMD_test.jl")
     for a in ambiguities
         println(a[1], "\n", a[2], "\n")
     end
-    @test_broken length(ambiguities) <= 5
+    @test length(ambiguities) <= 5
 end
 
 # Run all tests in optional packages, together with StaticNumbers,
 # to make sure we didn't break anything.
 if false
+    # This currenlty breaks because both SIMD and StaticArrays export "setindex"
     for m in (StaticArrays, SIMD)
+        println("Running tests from ", m)
         include(joinpath(dirname(dirname(pathof(m))), "test", "runtests.jl"))
     end
 end

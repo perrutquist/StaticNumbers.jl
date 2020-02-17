@@ -227,7 +227,7 @@ end
 @inline Base._range(start::T, step::T, stop::Nothing, length::StaticInteger) where {T<:AbstractFloat} = LengthStepRange(@stat(start-step), step, length) # disambig
 @inline Base._range(start::T, step::T, stop::Nothing, length::StaticInteger) where {T<:Union{Float16, Float32, Float64}} = LengthStepRange(@stat(start-step), step, length) # disambig
 
-const StaticLengthRange = LengthRange{T,Z,S,StaticInteger{L}} where {T,Z,S,L}
+const StaticLengthRange{T} = LengthRange{T,Z,S,StaticInteger{L}} where {Z,S,L}
 
 @inline Base.eachindex(r::StaticLengthRange) = StaticOneTo(r.length)
 
