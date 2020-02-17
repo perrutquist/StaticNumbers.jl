@@ -17,7 +17,7 @@ staticlength(r::SUnitRange) = LengthUnitRange(r)
 static(r::SUnitRange) = LengthUnitRange(r)
 
 Size(::LengthRange{T,Z,S,StaticInteger{L}}) where {T,Z,S,L} = Size(Int(L))
-Size(s::Tuple{Vararg{StaticInteger}}) = Size(Int.(s))
+Size(s::Tuple{StaticInteger, Vararg{StaticInteger}}) = Size(Int.(s))
 Size(s::StaticInteger, ss::StaticInteger...) = Size((s, ss...))
 static(::Size{S}) where {S} = static.(S)
 
@@ -39,7 +39,7 @@ end
 @inline (::Type{T})(g::Base.Generator{<:LengthRange}) where {T<:StaticVector} = T(Tuple(g))
 @inline (::Type{T})(iter::LengthRange) where {T<:StaticVector} = T(Tuple(iter))
 
-@inline function (::Type{T})(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}}) where {T<:StaticArray}
+@inline function (::Type{T})(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{StaticLengthRange, Vararg{StaticLengthRange}}}}) where {T<:StaticArray}
     sz = Size(size(g))
     data = Tuple(g)
     ST = similar_type(T, eltype(data), sz)

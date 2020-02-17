@@ -6,6 +6,7 @@ using StaticArrays
     @test Size(static(3), static(4)) === Size(3, 4)
     @test static(Size(3)) === (static(3),)
     @test typeof(Size()) === Size{()} # Issue #8
+    @test typeof(Size(())) === Size{()} # Issue #8
 end
 
 @testset "static length indexing" begin

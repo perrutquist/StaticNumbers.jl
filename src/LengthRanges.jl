@@ -247,7 +247,7 @@ end
 @inline Base.Tuple(g::Base.Generator{StaticOneTo{N}, F}) where {N,F} = ntuple(g.f, static(N))
 
 @inline Base.unsafe_getindex(r::LengthRange, i::Integer) = r.zeroth + i*r.step
-@inline Base.unsafe_getindex(iter::Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}}, i::Integer) = unsafe_i2s(i-1, iter.iterators...)
+@inline Base.unsafe_getindex(iter::Base.Iterators.ProductIterator{<:Tuple{StaticLengthRange, Vararg{StaticLengthRange}}}, i::Integer) = unsafe_i2s(i-1, iter.iterators...)
 
 """
 Helper function to look up a linear index in a product of fixed-length ranges
@@ -260,7 +260,7 @@ Takes 0-based linear index and a variable number of ranges.
     (Base.unsafe_getindex(v, i-n*l+1), unsafe_i2s(n, vs...)...)
 end
 
-@inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{Vararg{<:StaticLengthRange}}},F}) where {F}
+@inline function Base.Tuple(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{StaticLengthRange, Vararg{StaticLengthRange}}},F}) where {F}
     ntuple(i -> g.f(Base.unsafe_getindex(g.iter, i)), static(length(g)))
 end
 
