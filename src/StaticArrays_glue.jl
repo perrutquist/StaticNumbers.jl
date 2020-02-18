@@ -1,4 +1,5 @@
 import .StaticArrays: StaticArray, StaticVector, MArray, SArray, SVector, MVector, MMatrix, SOneTo, SUnitRange, Size, index_size, index_sizes, StaticIndexing, _ind, similar_type
+import .StaticArrays: LinearAlgebra
 
 import Base: Matrix, Array
 
@@ -21,7 +22,7 @@ Size(s::Tuple{StaticInteger, Vararg{StaticInteger}}) = Size(Int.(s))
 Size(s::StaticInteger, ss::StaticInteger...) = Size((s, ss...))
 static(::Size{S}) where {S} = static.(S)
 
-for AT in (Array, MArray), RT in (LengthStepRange{<:Integer,Z,S,<:StaticInteger} where {Z,S}, LengthUnitRange{<:Integer,Z,<:StaticInteger} where {Z})
+for AT in (Array, MArray, LinearAlgebra.Adjoint{<:Any, <:Array}, LinearAlgebra.Transpose{<:Any, <:Array}), RT in (LengthStepRange{<:Integer,Z,S,<:StaticInteger} where {Z,S}, LengthUnitRange{<:Integer,Z,<:StaticInteger} where {Z})
     Base.getindex(A::AT, r::RT) = MVector(ntuple(i -> A[r[i]], length(r)))
 end
 

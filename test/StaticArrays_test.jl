@@ -16,7 +16,7 @@ end
     @test LengthUnitRange(StaticArrays.SUnitRange(3,4)) === static(3):static(4)
     @test staticlength(StaticArrays.SUnitRange(3,4)) === static(3):static(4)
 
-    for x in ([1, 2, 3, 4], @MVector([1, 2, 3, 4]))
+    for x in ([1, 2, 3, 4], @MVector([1, 2, 3, 4]), [1 3; 2 4], [1 2; 3 4]', @MMatrix([1 3; 2 4]), @MMatrix([1 2; 3 4])')
         xi = x[static(1):static(2)]
         v = @MVector([1,2])
         @test xi == v
@@ -28,7 +28,11 @@ end
         # Test of trystatic(lastindex, x)
         xi = @stat x[1:end-2]
         @test xi == v
-        @test (xi isa Array && x isa Array) || (xi isa MArray && x isa MArray)
+        if x isa MArray
+            @test xi isa MArray
+        else
+            @test !(xi isa MArray)
+        end
     end
 
     for x in (@SVector([1, 2, 3, 4]), )
