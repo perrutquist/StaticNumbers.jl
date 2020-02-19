@@ -539,6 +539,13 @@ end
     end
 end
 
+@testset "Tuple from view" begin
+    A = rand(5,5)
+    v = view(A, range(2, length=static(3)), range(3, length=static(2)))
+    S = Test.@inferred Tuple(v)
+    @test S === Tuple(A[2:4,3:4])
+end
+
 include("StaticArrays_test.jl")
 
 include("SIMD_test.jl")

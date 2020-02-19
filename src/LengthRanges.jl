@@ -265,6 +265,10 @@ end
     ntuple(i -> g.f(Base.unsafe_getindex(g.iter, i)), static(length(g)))
 end
 
+@inline function Base.Tuple(a::SubArray{T,N,<:AbstractArray{T},<:Tuple{StaticLengthRange, Vararg{StaticLengthRange}}}) where {T, N}
+    ntuple(i -> Base.unsafe_getindex(a, i), static(length(a)))
+end
+
 # Utility functions for the @stat macro
 @inline maybe_static(::typeof(first), r::LengthRange) = @stat r.zeroth + r.step
 @inline maybe_static(::typeof(last), r::LengthRange) = @stat r.zeroth + r.step * r.length
