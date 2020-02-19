@@ -48,4 +48,10 @@ end
     ST(data)
 end
 
+Base.@propagate_inbounds function Base.convert(::Type{SA}, a::SubArray{T,N,<:AbstractArray{T},<:Tuple{StaticLengthRange, Vararg{StaticLengthRange}}}) where {SA <: StaticArray, T, N}
+    Z = similar_type(SA, T, Size(size(a)))
+    Z <: SA || error("Input array yields the wrong type of static array.")
+    Z(Tuple(a))
+end
+
 # TODO: Interface to StaticArrays for multi-dimensional indexing

@@ -78,3 +78,11 @@ end
     @test testmul(A, B) == [1784  1850; 1928  2000]
     Test.@inferred testmul(A, B)
 end
+
+@testset "SMatrix from view" begin
+    A = rand(5,5)
+    v = view(A, range(2, length=static(3)), range(3, length=static(2)))
+    S = Test.@inferred SMatrix(v)
+    @test S isa SMatrix
+    @test S == A[2:4,3:4]
+end
