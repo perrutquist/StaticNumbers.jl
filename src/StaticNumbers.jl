@@ -78,7 +78,8 @@ depending on the type of `X`.
 
 # There's no point crating a Val{Static{X}} since any function that would accept
 # it should treat it as equivalent to Val{X}.
-@inline Base.Val(::Static{X}) where X = Val(X)
+# But maybe it is a bad idea to add a method to a @pure function?
+# @inline Base.Val(::Static{X}) where X = Val(X)
 
 """
 `StaticNumbers.map(f, t::Tuple)` works the same as `Base.map(f, t)`, but does not stop

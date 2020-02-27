@@ -103,10 +103,11 @@ end
     @test one(static(2)) == 1
     @test oneunit(static(2)) == 1
 
-    @test Val(static(false)) === Val(false)
-    @test Val(static(1)) === Val(1)
-    @test Val(static(3.1)) === Val(3.1)
-    @test Val(static(3+im)) === Val(3+im)
+    # Skipping these since it might be a bad idea to add methods to Val
+    #@test Val(static(false)) === Val(false)
+    #@test Val(static(1)) === Val(1)
+    #@test Val(static(3.1)) === Val(3.1)
+    #@test Val(static(3+im)) === Val(3+im)
 
     @test static(1):static(3) isa LengthUnitRange{Int64,<:StaticInteger,<:StaticInteger}
     @test static(1:3) === static(1):static(3)
