@@ -418,6 +418,15 @@ end
     @test LengthUnitRange(2:4) == 2:4
 end
 
+# Expand `@stat` in a clean namespace to avoid assuming anything in
+# the expanding namespace.
+module CleanNamespace
+using StaticNumbers: @stat
+add_literal_one(x) = @stat x + 1
+add(x, y) = @stat x + y
+get_one_to(x, i) = @stat x[1:i]
+end
+
 @testset "@stat macro" begin
     @test @stat(2+2) === static(4)
     x = 2
@@ -469,6 +478,11 @@ end
     @test (2,3) === @stat T[2:end-1]
     @test (2,3) === @stat T[range(2, length=2)]
     Test.@inferred T[range(2, length=static(2))]
+
+    @test CleanNamespace.add_literal_one(0) === 1
+    @test CleanNamespace.add_literal_one(static(0)) === static(1)
+    @test CleanNamespace.add(static(0), 1) === 1
+    @test CleanNamespace.add(static(0), static(1)) === static(1)
 end
 
 tuple_test(n) = Tuple(i for i in static(1):n)

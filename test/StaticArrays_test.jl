@@ -63,6 +63,10 @@ end
     Test.@inferred(g(static(2)))
 
     @test SVector(i^2 for i in static(1):static(3)) === SVector{3}([1, 4, 9])
+
+    @test CleanNamespace.get_one_to(SVector(1, 2, 3), static(2)) === SVector(1, 2)
+    @test CleanNamespace.get_one_to(MVector(1, 2, 3), static(2)) == MVector(1, 2)
+    @test CleanNamespace.get_one_to(MVector(1, 2, 3), static(2)) isa MVector
 end
 
 @inline function testmul(A::SMatrix, B::SMatrix)
