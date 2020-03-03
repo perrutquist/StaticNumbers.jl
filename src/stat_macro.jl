@@ -33,26 +33,26 @@ Turn all constants in an expression into `static` and all
 function calls into `trystatic`.
 """
 statify(ex) = ex
-statify(x::Number) = :( static($x) )
+statify(x::Number) = :( $static($x) )
 statify(x::Unsigned) = x
 function statify(ex::Expr)
     if ex.head == :call
         if first(string(ex.args[1])) == '.'  #for example: .+
             # TODO: We should handle breadcasted maybe_static.
-            # Expr(:., :maybe_static, Expr(:tuple, Symbol(string(ex.args[1])[2:end]), map(statify, ex.args[2:end])...))
+            # Expr(:., maybe_static, Expr(:tuple, Symbol(string(ex.args[1])[2:end]), map(statify, ex.args[2:end])...))
             Expr(ex.head, map(statify, ex.args)...)
         elseif ex.args[1] ∈ (:oftype, :typeof)
             # Changing the type of the argument(s) makes no sense for these functions
-            Expr(ex.head, :maybe_static, ex.args...)
+            Expr(ex.head, maybe_static, ex.args...)
         else
-            Expr(ex.head, :maybe_static, map(statify, ex.args)...)
+            Expr(ex.head, maybe_static, map(statify, ex.args)...)
         end
     #elseif ex.head == :.
-    #    Expr(:., :maybe_static, Expr(:tuple, ex.args[1], map(statify, ex.args[2].args)...))
+    #    Expr(:., maybe_static, Expr(:tuple, ex.args[1], map(statify, ex.args[2].args)...))
     elseif ex.head ∈ (:if, :&&, :||, :(=))
         Expr(ex.head, ex.args[1], map(statify, ex.args[2:end])...)
     elseif ex.head == :ref
-        Expr(ex.head, :( StaticNumbers.MaybeStatic($(statify(ex.args[1]))) ), map(statify, ex.args[2:end])...)
+        Expr(ex.head, :( $StaticNumbers.MaybeStatic($(statify(ex.args[1]))) ), map(statify, ex.args[2:end])...)
     else
         Expr(ex.head, map(statify, ex.args)...)
     end
