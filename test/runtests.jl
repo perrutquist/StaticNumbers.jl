@@ -30,7 +30,7 @@ end
         println(a[1], "\n", a[2], "\n")
     end
     @test length(detect_ambiguities(StaticNumbers)) == 0
-    @test length(ambiguities) <= 5
+    @test length(ambiguities) <= 5 + 10*(VERSION < v"1.3")
 end
 
 @testset "static math" begin
@@ -570,7 +570,7 @@ include("SIMD_test.jl")
     for a in ambiguities
         println(a[1], "\n", a[2], "\n")
     end
-    @test length(ambiguities) <= 6
+    @test length(ambiguities) <= 6 + 10*(VERSION < v"1.3")
 end
 
 # Run all tests in optional packages, together with StaticNumbers,
