@@ -31,7 +31,7 @@ end
         println(a[1], "\n", a[2], "\n")
     end
     @test length(detect_ambiguities(StaticNumbers)) == 0
-    @test length(ambiguities) <= 5
+    @test length(ambiguities) <= 5 + 10*(VERSION < v"1.3")
 end
 
 @testset "static math" begin
@@ -419,6 +419,15 @@ end
     @test LengthUnitRange(2:4) == 2:4
 end
 
+# Expand `@stat` in a clean namespace to avoid assuming anything in
+# the expanding namespace.
+module CleanNamespace
+using StaticNumbers: @stat
+add_literal_one(x) = @stat x + 1
+add(x, y) = @stat x + y
+get_one_to(x, i) = @stat x[1:i]
+end
+
 @testset "@stat macro" begin
     @test @stat(2+2) === static(4)
     x = 2
@@ -474,6 +483,11 @@ end
     @test (2,3) === f2(T)
     @inferred f2(T)
     @inferred T[range(2, length=static(2))]
+
+    @test CleanNamespace.add_literal_one(0) === 1
+    @test CleanNamespace.add_literal_one(static(0)) === static(1)
+    @test CleanNamespace.add(static(0), 1) === 1
+    @test CleanNamespace.add(static(0), static(1)) === static(1)
 end
 
 tuple_test(n) = Tuple(i for i in static(1):n)
@@ -561,7 +575,7 @@ include("SIMD_test.jl")
     for a in ambiguities
         println(a[1], "\n", a[2], "\n")
     end
-    @test length(ambiguities) <= 6
+    @test length(ambiguities) <= 6 + 10*(VERSION < v"1.3")
 end
 
 # Run all tests in optional packages, together with StaticNumbers,
