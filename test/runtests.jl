@@ -1,5 +1,6 @@
 using StaticNumbers
 using Test
+using Test: @inferred
 
 @testset "simple tests" begin
     @test static(1) === StaticInteger{1}()
@@ -211,15 +212,15 @@ end
 
 @testset "various" begin
     @test ntuple(identity, static(5)) === static.(ntuple(identity, Val(5)))
-    Test.@inferred ntuple(identity, static(1))
-    Test.@inferred ntuple(identity, static(5))
-    Test.@inferred ntuple(identity, static(25))
-    Test.@inferred ntuple(static, static(1))
-    Test.@inferred ntuple(static, static(5))
-    Test.@inferred ntuple(static, static(25))
-    Test.@inferred ntuple(x->x^2, static(1))
-    Test.@inferred ntuple(x->x^2, static(5))
-    Test.@inferred ntuple(x->x^2, static(25))
+    @inferred ntuple(identity, static(1))
+    @inferred ntuple(identity, static(5))
+    @inferred ntuple(identity, static(25))
+    @inferred ntuple(static, static(1))
+    @inferred ntuple(static, static(5))
+    @inferred ntuple(static, static(25))
+    @inferred ntuple(x->x^2, static(1))
+    @inferred ntuple(x->x^2, static(5))
+    @inferred ntuple(x->x^2, static(25))
 
     # Test StaticRanges
 
@@ -321,18 +322,18 @@ end
     @test LengthRange(1:2:4) isa LengthStepRange
 
     # Test that type inferrence is working
-    Test.@inferred 2*r
-    Test.@inferred 2*ur
+    @inferred 2*r
+    @inferred 2*ur
 
     f3(x) = trystatic(x, 3, 4)
     # @show Base.return_types(f3, (Int,))
     g3() = f3(4)
-    Test.@inferred g3()
+    @inferred g3()
 
     f4(x) = trystatic(x, static(3), static(4))
     # @show Base.return_types(f4, (Int,))
     g4() = f4(4)
-    Test.@inferred g4()
+    @inferred g4()
 
      # f5(x) = trystatic(mod(x,4), LengthStepRange(static(-1),static(1),static(4)))
      # @show Base.return_types(f5, (Int,))
@@ -364,10 +365,10 @@ end
     @test maybe_static(+, static(2), 2) === 4
     @test maybe_static(+, 2, static(2)) === 4
     @test maybe_static(+, static(2), static(2)) === static(4)
-    Test.@inferred maybe_static(+, 2, 2)
-    Test.@inferred maybe_static(+, static(2), 2)
-    Test.@inferred maybe_static(+, 2, static(2))
-    Test.@inferred maybe_static(+, static(2), static(2))
+    @inferred maybe_static(+, 2, 2)
+    @inferred maybe_static(+, static(2), 2)
+    @inferred maybe_static(+, 2, static(2))
+    @inferred maybe_static(+, static(2), static(2))
 
     # Test @tostatic macro
 
@@ -401,13 +402,13 @@ end
 @testset "tuple indexing" begin
     for t in ((1,2,3,4), (1, 2.0, 3//1, 4.0f0))
         @test t[static(2)] === t[2]
-        Test.@inferred t[static(2)]
+        @inferred t[static(2)]
         @test t[static(2):static(3)] === t[2:3]
-        Test.@inferred t[static(2):static(3)]
+        @inferred t[static(2):static(3)]
         @test t[static(2):static(2):static(4)] === t[2:2:4]
-        Test.@inferred t[static(2):static(2):static(4)]
+        @inferred t[static(2):static(2):static(4)]
         @test t[static(1):static(2):static(3)] === t[1:2:3]
-        Test.@inferred t[static(1):static(2):static(2)]
+        @inferred t[static(1):static(2):static(2)]
     end
 end
 
@@ -449,11 +450,11 @@ end
 
     f(t) = @stat t[2:end-1]
     @test f(T) === (2,3)
-    Test.@inferred f((1,2,3,4))
+    @inferred f((1,2,3,4))
 
     @stat g(t,k) = t[k .+ (0:1)]
     @test g(T, 2) === (2,3)
-    Test.@inferred g((1,2,3,4), 2)
+    @inferred g((1,2,3,4), 2)
 
     @test @stat(first(2:3)) === static(2)
     @test @stat(last(2:3)) === static(3)
@@ -466,9 +467,13 @@ end
     @test UInt(1) === @stat unsigned(1)
 
     T = (1,2,3,4)
-    @test (2,3) === @stat T[2:end-1]
-    @test (2,3) === @stat T[range(2, length=2)]
-    Test.@inferred T[range(2, length=static(2))]
+    f1(T) = @stat T[2:end-1]
+    @test (2,3) === f1(T)
+    @inferred f1(T)
+    f2(T) = @stat T[range(2, length=2)]
+    @test (2,3) === f2(T)
+    @inferred f2(T)
+    @inferred T[range(2, length=static(2))]
 end
 
 tuple_test(n) = Tuple(i for i in static(1):n)
@@ -484,10 +489,10 @@ tuple_test3(n) = Tuple(Tuple(i+j for i in static(1):n) for j in static(1:n))
 
     if VERSION >= v"1.3"
         # Some of the inference tests are too hard for Julia 1.0
-        Test.@inferred Tuple(i+j for i=static(2:3), j=static(10:10:20))
-        Test.@inferred tuple_test(static(2))
-        Test.@inferred tuple_test2(static(2))
-        Test.@inferred tuple_test3(static(2))
+        @inferred Tuple(i+j for i=static(2:3), j=static(10:10:20))
+        @inferred tuple_test(static(2))
+        @inferred tuple_test2(static(2))
+        @inferred tuple_test3(static(2))
     end
 end
 
@@ -499,7 +504,7 @@ end
     @test static(4) === @stat s + 2
     @test 4 === @stat s + i
     @test (1, 4, 9, 16) === Tuple(i^2 for i in static(1):static(4))
-    Test.@inferred Tuple(i^2 for i in static(1):static(4))
+    @inferred Tuple(i^2 for i in static(1):static(4))
 end
 
 # NOTE: There's still a lot of work to do on unsigned
@@ -531,19 +536,19 @@ end
     @test StaticNumbers.map(+, (1,2,3), (1,2,3), (1,2,3)) === Base.map(+, (1,2,3), (1,2,3), (1,2,3))
     @test StaticNumbers.map(+, long_tuple, long_tuple, long_tuple) === Base.map(+, long_tuple, long_tuple, long_tuple)
     if VERSION >= v"1.3"
-        Test.@inferred StaticNumbers.map(sin, (1,2,3))
-        Test.@inferred StaticNumbers.map(sin, long_tuple)
-        Test.@inferred StaticNumbers.map(+, (1,2,3), (1,2,3))
-        Test.@inferred StaticNumbers.map(+, long_tuple, long_tuple)
-        Test.@inferred StaticNumbers.map(+, (1,2,3), (1,2,3), (1,2,3))
-        Test.@inferred StaticNumbers.map(+, long_tuple, long_tuple, long_tuple)
+        @inferred StaticNumbers.map(sin, (1,2,3))
+        @inferred StaticNumbers.map(sin, long_tuple)
+        @inferred StaticNumbers.map(+, (1,2,3), (1,2,3))
+        @inferred StaticNumbers.map(+, long_tuple, long_tuple)
+        @inferred StaticNumbers.map(+, (1,2,3), (1,2,3), (1,2,3))
+        @inferred StaticNumbers.map(+, long_tuple, long_tuple, long_tuple)
     end
 end
 
 @testset "Tuple from view" begin
     A = rand(5,5)
     v = view(A, range(2, length=static(3)), range(3, length=static(2)))
-    S = Test.@inferred Tuple(v)
+    S = @inferred Tuple(v)
     @test S === Tuple(A[2:4,3:4])
 end
 

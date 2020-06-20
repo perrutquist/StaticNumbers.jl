@@ -171,7 +171,7 @@ const StaticOrBool = Union{StaticBool, Bool}
 Base.:!(x::StaticBool) = !Bool(x)
 
 # false is a strong zero
-for T in (Integer, Real, Number, Complex{<:Real}, Complex{Bool}, StaticInteger, StaticReal, StaticNumber)
+for T in (Integer, Rational, Real, Number, Complex{<:Real}, Complex{Bool}, StaticInteger, StaticReal, StaticNumber)
     Base.:*(::StaticInteger{false}, y::T) = zero(y)
     Base.:*(x::T, ::StaticInteger{false}) = zero(x)
 end
