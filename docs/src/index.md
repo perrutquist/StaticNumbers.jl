@@ -18,7 +18,7 @@ arithmetic operations. (For example `static(1) + 1` equals `2`.)
 This makes it possible to use them with functions that were not specifically
 written to accept value arguments, essentially forcing the Julia compiler to do
 [constant propagation](https://en.wikipedia.org/wiki/Constant_folding) in
-situations where it might not otherwise have done so. 
+situations where it might not otherwise have done so.
 
 Under the surface, there are three `Static` datatypes: `StaticInteger`,
 `StaticReal`, and `StaticNumber`, subtypes of `Integer`, `Real` and `Number`
@@ -56,10 +56,10 @@ Tuple(i^2 for i in 1:4) # computed at runtime, length of the tuple is not inferr
 Indexing into tuples can also be a lot more efficient with static numbers. For example:
 ```julia
 t = (1, 2, 3, 4)
-t[@stat 2:end-1] # fast, type stable and non-allocating
-t[2:end-1] # much less performant (as of Julia 1.3.1)
+@stat t[2:end-1] # fast, type stable and non-allocating
+t[2:end-1] # less performant
 ```
-(Indexing tuples without static numbers will work better in the future, see [pull request 31138](https://github.com/JuliaLang/julia/pull/31138).)
+(Indexing tuples without static numbers works well in certain special cases, thanks to [pull request 31138](https://github.com/JuliaLang/julia/pull/31138).)
 
 When creating static numbers, it is important to consider whether the type
 system will be able to work efficiently. For example, `f(static(x), y)` is
@@ -82,7 +82,7 @@ There is no `StaticRational` datatype, but a `StaticReal` with a
 For example: `static(1//2) + 1 === 3//2`.
 
 The `Unsigned` datatype currently does not work well with static numbers.
-For this reason  the `@stat` macro does turn unsigned numbers into static.
+For this reason  the `@stat` macro does not turn unsigned numbers into static.
 (This is work in progress, and subjec to change.)
 
 Static numbers are only fast when fully specified. A `Vector{Static}`
