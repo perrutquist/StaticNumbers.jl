@@ -74,7 +74,8 @@ depending on the type of `X`.
 @inline static(x::StaticInteger) = x
 @inline static(x::StaticReal) = x
 @inline static(x::StaticNumber) = x
-@inline static(x::Irrational) = x # These are already defined by their type.
+
+Base.Irrational{X}(::StaticReal{Y}) where {X, Y} = Irrational{X}(Y)
 
 # There's no point crating a Val{Static{X}} since any function that would accept
 # it should treat it as equivalent to Val{X}.
@@ -222,6 +223,9 @@ for fun in (:(<), :(<=))
     @eval Base.$fun(::StaticInteger{X}, ::StaticInteger{Y}) where {X,Y} = $fun(X, Y)
 end
 
+Base.:(==)(x::AbstractIrrational, ::StaticReal{Y}) where {Y} = x == Y
+Base.:(==)(::StaticReal{X}, y::AbstractIrrational) where {X} = X == y
+
 # Three-argument function that gives no_op_err
 Base.fma(::ST, ::ST, ::ST) where {ST<:Static{X}} where {X} = fma(X,X,X)
 
@@ -243,6 +247,10 @@ function Base.show(io::IO, x::Static{X}) where X
     print(io, "static(")
     show(io, X)
     print(io, ")")
+end
+
+for f in (:isfinite, :isnan, :isinf)
+    @eval Base.$f(::StaticReal{X}) where {X} = $f(X)
 end
 
 # Dont promote when it's better to treat real and imaginary parts separately
