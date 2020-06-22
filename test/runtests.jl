@@ -35,7 +35,14 @@ end
 end
 
 @testset "static math" begin
-    for x in (-1.0, -1, 0, 0.0, false, true, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im, Inf)
+    if VERSION <= v"1.5"
+        # Don't test with pi on Julia versions that don't support one(pi)
+        lst = (-1.0, -1, -1//2, -0.5, 0, 0.0, false, true, 2, 3, 1.5, 2.0, 3.1, 3//2, 3.0+im, Inf)
+    else
+        lst = (-1.0, -1, -1//2, -0.5, 0, 0.0, false, true, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im, Inf)
+    end
+
+    for x in lst
         for f in (:round, :ceil, :floor, :sign, :cos, :sin, :log, :exp, :isfinite, :isnan, :abs, :abs2, :iszero, :isone)
             r = try
                 @eval $f($x)
@@ -47,7 +54,7 @@ end
                 @test @eval $f(static($x)) == $r
             end
         end
-        for y in (-1.0, -1, -1//2, -0.5, 0, 0.0, false, true, 2, 3, 1.5, 2.0, 3.1, pi, 3//2, 3.0+im, Inf)
+        for y in lst
             @test static(x) + y === x + y
             @test x + static(y) === x + y
             @test static(x) + static(y) === x + y
