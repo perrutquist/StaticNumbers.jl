@@ -6,7 +6,7 @@ Here are a couple of examples of how StaticNumbers can be used.
 
 We can abuse static numbers to make the compiler compute the 20:th Fibonacci number:
 
-```julie
+```
 julia> using StaticNumbers
 
 julia> fib(n) = n <= 1 ? n : fib(static(n-1)) + fib(static(n-2))
@@ -23,6 +23,30 @@ top:
 
 We see that the compiler has created a function that simply returns the 20th Fibonacci number (6765) without doing any run-time calculation at all. (In the process, the compiler builds a [memoization](https://en.wikipedia.org/wiki/Memoization)
 table of the first 20 Fibonacci numbers as part of the dispatch table.)
+
+## The Ackermann function
+
+A similar example is the [Ackermann function](https://en.wikipedia.org/wiki/Ackermann_function).
+We can make the first argument, `m`, a static number without causing a large number of mehtods
+to be compiled, since `m` is rarely larger@ than 5. (Otherwise the computation would take forever.)
+
+```
+using StaticNumbers
+function A(m,n)
+    if iszero(m)
+        n + one(n)
+    elseif iszero(n)
+        A(@stat(m - one(m)), one(n))
+    else
+        A(@stat(m - one(m)), A(m, n - one(n)))
+    end
+end
+@time A(4, 1)
+@time A(static(4), 1) # much faster
+```
+
+The function `A` above also works when `m` is a regular `Int`, but the use of static numbers
+makes it significantly faster, even on the first call where compile time is also included.
 
 ## Fast multiplication of small matrices.
 
