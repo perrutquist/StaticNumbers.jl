@@ -141,11 +141,12 @@ end
 # Some of the more common constructors that do not default to `convert`
 # Note:  We cannot have a (::Type{T})(x::Static) where {T<:Number} constructor
 # instead of all of these, because of ambiguities with user-defined types.
-
-for T in (:Bool, :Int32, :UInt32, :Int64, :UInt64, :Int128, :BigInt, :Unsigned, :Integer)
-    @eval Base.$T(::StaticInteger{X}) where X = $T(X)
+for T in (:Bool, :Integer, :AbstractFloat, :Unsigned, :Signed,
+          :BigInt, :Int128, :Int16, :Int32, :Int64, :Int8,
+          :UInt128, :UInt16, :UInt32, :UInt64, :UInt8,
+          :BigFloat, :Float16, :Float32, :Float64)
+    @eval Base.$T(::Static{X}) where {X} = $T(X)
 end
-(::Type{T})(x::Union{StaticReal{X}, StaticInteger{X}}) where {T<:AbstractFloat, X} = T(X)
 
 # big(x) still defaults to convert.
 
