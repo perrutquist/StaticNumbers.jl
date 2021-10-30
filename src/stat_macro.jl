@@ -13,7 +13,7 @@ functions under the macro.
 @inline function maybe_static(f::F, args...; kwargs...) where {F}
     y = f(args...; kwargs...)
     if y isa Number && !(y isa Bool) && !(y isa Unsigned) &&
-            all(map(a->a isa Static, args)) && all(map(a->a isa Static, kwargs.data))
+            all(map(a->a isa Static, args)) && all(map(a->a isa Static, values(kwargs)))
         static(y)
     else
         y
