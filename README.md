@@ -7,4 +7,7 @@
 
 This package provides number datatypes which store their values in type parameters, making them runtime constants.
 
+Note: The glue code to StaticArrays.jl and SIMD.jl that was loaded automatically (using Requires.jl) in StaticNumbers release 0.3.3 is no longer loaded by default.
+It can be loaded with by running `StaticNumbers.@glue_to StaticArrays` and/or `StaticNumbers.@glue_to SIMD`, if needed.
+
 See the [documentation](https://perrutquist.github.io/StaticNumbers.jl/dev/index.html) for more info.

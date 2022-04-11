@@ -1,5 +1,7 @@
 using StaticArrays
 
+StaticNumbers.@glue_to StaticArrays
+
 @testset "StaticArrays Size" begin
     @test Size(static(2:4)) === Size(3)
     @test Size(static(3)) === Size(3)
@@ -16,7 +18,7 @@ end
     @test LengthUnitRange(StaticArrays.SUnitRange(3,4)) === static(3):static(4)
     @test staticlength(StaticArrays.SUnitRange(3,4)) === static(3):static(4)
 
-    for x in ([1, 2, 3, 4], @MVector([1, 2, 3, 4]), [1 3; 2 4], [1 2; 3 4]', @MMatrix([1 3; 2 4]), @MMatrix([1 2; 3 4])')
+    for x in ([1, 2, 3, 4], @MVector([1, 2, 3, 4]), [1 3; 2 4], [1 2; 3 4]', @MMatrix([1 3; 2 4]), adjoint(@MMatrix([1 2; 3 4])))
         xi = x[static(1):static(2)]
         v = @MVector([1,2])
         @test xi == v

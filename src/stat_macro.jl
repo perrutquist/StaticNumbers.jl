@@ -37,11 +37,12 @@ statify(x::Number) = :( $static($x) )
 statify(x::Unsigned) = x
 function statify(ex::Expr)
     if ex.head == :call
-        if first(string(ex.args[1])) == '.'  #for example: .+
+        a1 = first(ex.args)::Union{Symbol, Expr}
+        if first(string(a1)) == '.'  #for example: .+
             # TODO: We should handle breadcasted maybe_static.
             # Expr(:., maybe_static, Expr(:tuple, Symbol(string(ex.args[1])[2:end]), map(statify, ex.args[2:end])...))
             Expr(ex.head, map(statify, ex.args)...)
-        elseif ex.args[1] ∈ (:oftype, :typeof)
+        elseif a1 ∈ (:oftype, :typeof)
             # Changing the type of the argument(s) makes no sense for these functions
             Expr(ex.head, maybe_static, ex.args...)
         else

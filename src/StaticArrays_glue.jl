@@ -1,5 +1,5 @@
-import .StaticArrays: StaticArray, StaticVector, MArray, SArray, SVector, MVector, MMatrix, SOneTo, SUnitRange, Size, index_size, index_sizes, StaticIndexing, _ind, similar_type
-import .StaticArrays: LinearAlgebra
+import StaticArrays: StaticArray, StaticVector, MArray, SArray, SVector, MVector, MMatrix, SOneTo, SUnitRange, Size, index_size, index_sizes, StaticIndexing, _ind, similar_type
+import StaticArrays: LinearAlgebra
 
 import Base: Matrix, Array
 

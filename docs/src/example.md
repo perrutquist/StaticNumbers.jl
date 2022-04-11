@@ -61,6 +61,7 @@ We start by defining the type `Mat`, which we'll use to hold our matrices, plus 
 using StaticNumbers
 using SIMD
 import Base: size, getindex, IndexStyle
+StaticNumbers.@glue_to SIMD
 
 struct Mat{T,M,N} <: AbstractMatrix{T}
     data::NTuple{N,Vec{M,T}}

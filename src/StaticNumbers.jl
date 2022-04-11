@@ -1,15 +1,15 @@
 module StaticNumbers
 
-using Requires
 import Base.Broadcast: broadcasted, DefaultArrayStyle
 
 export Static, static,
        StaticBool, StaticInteger, StaticReal, StaticNumber, StaticOrInt, StaticOrBool,
        @staticnumbers, @generate_static_methods, unstatic
 
-function __init__()
-    @require StaticArrays="90137ffa-7385-5640-81b9-e52037218182" include("StaticArrays_glue.jl")
-    @require SIMD="fdea26ae-647d-5447-a871-4b548cad5224" include("SIMD_glue.jl")
+# We no longer use Requires.jl, but have a macro to include the glue instead.
+macro glue_to(mod)
+    src = joinpath(@__DIR__, string(mod, "_glue.jl"))
+    :( Base.include(StaticNumbers, $src) )
 end
 
 const StaticError = ErrorException("Illegal type parameter for Static.")
@@ -24,8 +24,13 @@ struct StaticInteger{X} <: Integer
         new{X}()
     end
 end
-@inline StaticInteger{X}(x::Number) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
-@inline StaticInteger(x::Number) = StaticInteger{Integer(x)}()
+
+# These cause inambiguity with (::Type{T})(x::SomeIntegerType) where T<:Integer in Base 
+# @inline StaticInteger{X}(x::Number) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
+# @inline StaticInteger(x::Number) = StaticInteger{Integer(x)}() 
+
+@inline StaticInteger{X}(x::Int) where {X} = x==X ? StaticInteger{X}() : throw(InexactError(:StaticInteger, StaticInteger{X}, x))
+@inline StaticInteger(x::Int) = StaticInteger{x}() 
 
 """
 A `StaticReal` is a `Real` whose value is stored in the type, and which
@@ -37,8 +42,13 @@ struct StaticReal{X} <: Real
         new{X}()
     end
 end
-@inline StaticReal{X}(x::Number) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
-@inline StaticReal(x::Number) = StaticReal{Real(x)}()
+
+# These cause inambiguity with (::Type{T})(z::Complex) where T<:Integer in Base 
+# @inline StaticReal{X}(x::Number) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
+# @inline StaticReal(x::Number) = StaticReal{Real(x)}()
+
+@inline StaticReal{X}(x::Real) where {X} = x==X ? StaticReal{X}() : throw(InexactError(:StaticReal, StaticReal{X}, x))
+@inline StaticReal(x::Real) = StaticReal{x}()
 
 """
 A `StaticNumber` is a `Number` whose value is stored in the type, and which
@@ -104,9 +114,8 @@ even harder to constant-propagate the integer input into `f`.
 """
 # Recursive version only worked for tuple lengths up to 32, so resorting to @generated.
 @generated function Base.ntuple(f::F, ::StaticInteger{N}) where {F,N}
-    N::Int
-    (N >= 0) || throw(ArgumentError(string("tuple length should be ≥ 0, got ", N)))
-    v = Expr(:tuple, [ :( f(StaticInteger{$i}()) ) for i in 1:N ]... )
+    (N::Int >= 0) || throw(ArgumentError(string("tuple length should be ≥ 0, got ", N)))
+    v = Expr(:tuple, ( :( f(StaticInteger{$i}()) ) for i in 1:N )... )
     :( Base.@_inline_meta; $v )
 end
 

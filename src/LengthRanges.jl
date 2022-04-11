@@ -18,7 +18,7 @@ struct LengthStepRange{T,Z,S,L} <: OrdinalRange{T,S}
     length::L
     function LengthStepRange{T,Z,S,L}(z::Z, s::S, l::L) where {T, Z, S, L<:Integer}
         if L<:StaticInteger
-            l >= 0 || throw(unsafe_lengthRangeError)
+            l >= 0 || throw(LengthRangeError)
         else
             l = max(l,zero(l))::L
         end
@@ -194,33 +194,40 @@ function Base.show(io::IO, r::LengthRange)
 end
 
 broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Number, r::LengthStepRange) = LengthStepRange(a+r.zeroth, r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Integer, r::LengthStepRange) = LengthStepRange(a+r.zeroth, r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthStepRange, a::Number) = LengthStepRange(a+r.zeroth, r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthStepRange, a::Integer) = LengthStepRange(a+r.zeroth, r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Real, r::LengthUnitRange) = LengthUnitRange(a+r.zeroth, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), a::Integer, r::LengthUnitRange) = LengthUnitRange(a+r.zeroth, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthUnitRange, a::Real) = LengthUnitRange(a+r.zeroth, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(+), r::LengthUnitRange, a::Integer) = LengthUnitRange(a+r.zeroth, r.length)
 
 Base.:-(r::LengthStepRange) = LengthStepRange(-r.zeroth, -r.step, r.length)
 Base.:-(r::LengthStepRange{<:Any,<:Integer,StaticInteger{-1}}) = LengthUnitRange(-r.zeroth, r.length)
 Base.:-(r::LengthUnitRange) = LengthStepRange(-r.zeroth, static(-1), r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthRange) = -r
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), a::Number, r::LengthRange) = LengthStepRange(a-r.zeroth, -r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(-), a::Integer, r::LengthRange) = LengthStepRange(a-r.zeroth, -r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthStepRange, a::Number) = LengthStepRange(r.zeroth-a, r.step, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthStepRange, a::Integer) = LengthStepRange(r.zeroth-a, r.step, r.length)
 broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthUnitRange, a::Real) = LengthUnitRange(r.zeroth-a, r.length)
+broadcasted(::DefaultArrayStyle{1}, ::typeof(-), r::LengthUnitRange, a::Integer) = LengthUnitRange(r.zeroth-a, r.length)
 
 Base.:*(a::Number, r::LengthRange) = LengthStepRange(a*r.zeroth, a*r.step, r.length)
 Base.:*(a::Number, r::LengthRange{<:Any, StaticInteger{0}}) = LengthStepRange(static(0), a*r.step, r.length)
 Base.:*(r::LengthRange, a::Number) = a*r
-broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::Number,r::LengthRange) = a*r
-broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange,a::Number) = a*r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::Number, r::LengthRange) = a*r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(*), a::AbstractFloat, r::LengthRange) = a*r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange, a::Number) = a*r
+broadcasted(::DefaultArrayStyle{1}, ::typeof(*), r::LengthRange, a::AbstractFloat) = a*r
 
 # Creating a range from two (or three) static integers, e.g. static(2):static(3)
 # will return a LengthUnitRange (or LengthStepRange) using different static
 # numbers (zeroth and length).
 # This is an exception to the rule that we don't create new static nubmers
 # unless the user asks for it explicitly.
-for S in (StaticInteger, StaticReal), T in (StaticInteger, StaticReal)
-    @inline Base.:(:)(a::S, b::T) = a:static(1):b
-end
-@inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷s+1))
+@inline Base.:(:)(a::StaticInteger, b::StaticInteger) = a:static(1):b
+@inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::StaticInteger) = LengthStepRange(static(a-s), s, static((b-a)÷unstatic(s)+1))
 @inline Base.:(:)(a::StaticInteger, s::StaticInteger, b::Integer) = LengthStepRange(static(a-s), s, (b-a)÷s+1)
 
 @inline Base._range(start::Real, step::Nothing, stop::Nothing, length::StaticInteger) = LengthUnitRange(@stat(start-1), length)
@@ -275,7 +282,7 @@ end
 @inline maybe_static(::typeof(first), ::Base.OneTo) = static(1)
 
 @inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::StaticInteger) = static(r.parent[i])
-@inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::LengthRange) = maybe_wrap(getindex(r.parent, i))
+@inline Base.getindex(r::MaybeStatic{<:LengthRange}, i::LengthRange) = maybe_static(getindex, r.parent, i)
 
 @inline function maybe_static(::typeof(getindex), r::LengthRange, i::StaticInteger)
     @boundscheck checkbounds(r, i)
