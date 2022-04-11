@@ -8,8 +8,8 @@ export Static, static,
 
 # We no longer use Requires.jl, but have a macro to include the glue instead.
 macro glue_to(mod)
-    src = joinpath(@__DIR__, string(mod, "_glue.jl"))
-    :( Base.include(StaticNumbers, $src) )
+    src = read(joinpath(@__DIR__, string(mod, "_glue.jl")), String)
+    esc(Meta.parse("begin\n$src\nend")) # kinda like include("xxx_glue.jl"), but runs everytning in the current scope.
 end
 
 const StaticError = ErrorException("Illegal type parameter for Static.")
@@ -84,6 +84,9 @@ depending on the type of `X`.
 @inline static(x::StaticInteger) = x
 @inline static(x::StaticReal) = x
 @inline static(x::StaticNumber) = x
+
+# Don't convert `Irrational`s to `Static``, since they are already "static" to the compiler.
+@inline static(x::AbstractIrrational) = x
 
 Base.Irrational{X}(::StaticReal{Y}) where {X, Y} = Irrational{X}(Y)
 
@@ -204,6 +207,7 @@ for fun in (:abs, :abs2, :cos, :sin, :exp, :log, :isinf, :isfinite, :isnan)
     @eval Base.$fun(::StaticNumber{X}) where {X} = Base.$fun(X)
 end
 Base.sign(::StaticInteger{X}) where {X} = Base.sign(X) # work around problem with Bool
+Base.sign(::StaticReal{X}) where {X} = Base.sign(X) 
 
 # Other functions that do not already work
 Base.:(<<)(::StaticInteger{X}, y::UInt64) where {X} = X << y

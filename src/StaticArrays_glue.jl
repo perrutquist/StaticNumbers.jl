@@ -1,57 +1,52 @@
-import StaticArrays: StaticArray, StaticVector, MArray, SArray, SVector, MVector, MMatrix, SOneTo, SUnitRange, Size, index_size, index_sizes, StaticIndexing, _ind, similar_type
-import StaticArrays: LinearAlgebra
-
-import Base: Matrix, Array
-
 # TODO: Add methods for other matrix-creation functions, such as zeros() and rand().
 
-SOneTo(::StaticOneTo{L}) where {L} = SOneTo{L}()
-StaticOneTo(::SOneTo{L}) where {L} = StaticOneTo{L}()
-staticlength(r::SOneTo) = StaticOneTo(r)
-static(r::SOneTo) = StaticOneTo(r)
+StaticArrays.SOneTo(::StaticNumbers.StaticOneTo{L}) where {L} = StaticArrays.SOneTo{L}()
+StaticNumbers.StaticOneTo(::StaticArrays.SOneTo{L}) where {L} = StaticNumbers.StaticOneTo{L}()
+StaticNumbers.staticlength(r::StaticArrays.SOneTo) = StaticNumbers.StaticOneTo(r)
+StaticNumbers.static(r::StaticArrays.SOneTo) = StaticNumbers.StaticOneTo(r)
 
 # TODO: Maybe just SOneTo from StaticArrays instead of defining StaticOneTo?
 
-Base.@pure SUnitRange(r::LengthUnitRange) = SUnitRange{Int(first(r)), Int(length(r))}()
-LengthUnitRange(::SUnitRange{Start, L}) where {Start, L} = LengthUnitRange(static(Start-1), static(L))
-staticlength(r::SUnitRange) = LengthUnitRange(r)
-static(r::SUnitRange) = LengthUnitRange(r)
+@inline StaticArrays.SUnitRange(r::StaticNumbers.LengthUnitRange) = StaticArrays.SUnitRange{Int(first(r)), Int(length(r))}()
+StaticNumbers.LengthUnitRange(::StaticArrays.SUnitRange{Start, L}) where {Start, L} = StaticNumbers.LengthUnitRange(StaticNumbers.static(Start-1), StaticNumbers.static(L))
+StaticNumbers.staticlength(r::StaticArrays.SUnitRange) = StaticNumbers.LengthUnitRange(r)
+StaticNumbers.static(r::StaticArrays.SUnitRange) = StaticNumbers.LengthUnitRange(r)
 
-Size(::LengthRange{T,Z,S,StaticInteger{L}}) where {T,Z,S,L} = Size(Int(L))
-Size(s::Tuple{StaticInteger, Vararg{StaticInteger}}) = Size(Int.(s))
-Size(s::StaticInteger, ss::StaticInteger...) = Size((s, ss...))
-static(::Size{S}) where {S} = static.(S)
+StaticArrays.Size(::LengthRange{T,Z,S,StaticInteger{L}}) where {T,Z,S,L} = StaticArrays.Size(Int(L))
+StaticArrays.Size(s::Tuple{StaticInteger, Vararg{StaticInteger}}) = StaticArrays.Size(Int.(s))
+StaticArrays.Size(s::StaticInteger, ss::StaticInteger...) = StaticArrays.Size((s, ss...))
+StaticNumbers.static(::StaticArrays.Size{S}) where {S} = StaticNumbers.static.(S)
 
-for AT in (Array, MArray, LinearAlgebra.Adjoint{<:Any, <:Array}, LinearAlgebra.Transpose{<:Any, <:Array}), RT in (LengthStepRange{<:Integer,Z,S,<:StaticInteger} where {Z,S}, LengthUnitRange{<:Integer,Z,<:StaticInteger} where {Z})
-    Base.getindex(A::AT, r::RT) = MVector(ntuple(i -> A[r[i]], length(r)))
+for AT in (Array, StaticArrays.MArray), RT in (LengthStepRange{<:Integer,Z,S,<:StaticInteger} where {Z,S}, LengthUnitRange{<:Integer,Z,<:StaticInteger} where {Z})
+    Base.getindex(A::AT, r::RT) = StaticArrays.MVector(ntuple(i -> A[r[i]], length(r)))
 end
 
-for AT in (SArray,), RT in (LengthStepRange{<:Integer,Z,S,<:StaticInteger} where {Z,S}, LengthUnitRange{<:Integer,Z,<:StaticInteger} where {Z})
-    Base.getindex(A::AT, r::RT) = SVector(ntuple(i -> A[r[i]], length(r)))
+for AT in (StaticArrays.SArray,), RT in (LengthStepRange{<:Integer,Z,S,<:StaticInteger} where {Z,S}, LengthUnitRange{<:Integer,Z,<:StaticInteger} where {Z})
+    Base.getindex(A::AT, r::RT) = StaticArrays.SVector(ntuple(i -> A[r[i]], length(r)))
 end
 
 # Allow "end" to become static when indexing into static arrays
-@inline maybe_static(::typeof(lastindex), A::StaticArray) = static(lastindex(A))
-@inline maybe_static(::typeof(lastindex), A::StaticArray, d::StaticInteger) = static(lastindex(A, i))
+@inline StaticNumbers.maybe_static(::typeof(lastindex), A::StaticArrays.StaticArray) = StaticNumbers.static(lastindex(A))
+@inline StaticNumbers.maybe_static(::typeof(lastindex), A::StaticArrays.StaticArray, d::StaticInteger) = StaticNumbers.static(lastindex(A, i))
 
-@inline maybe_static(::typeof(size), A::StaticArray) = map(static, size(A))
-@inline maybe_static(::typeof(size), A::StaticArray, d::Integer) = static(size(A, d))
+@inline StaticNumbers.maybe_static(::typeof(size), A::StaticArrays.StaticArray) = map(static, size(A))
+@inline StaticNumbers.maybe_static(::typeof(size), A::StaticArrays.StaticArray, d::Integer) = static(size(A, d))
 
 @inline (::Type{T})(g::Base.Generator{<:LengthRange}) where {T<:StaticVector} = T(Tuple(g))
-@inline (::Type{T})(iter::LengthRange) where {T<:StaticVector} = T(Tuple(iter))
+@inline (::Type{T})(iter::StaticNumbers.LengthRange) where {T<:StaticVector} = T(Tuple(iter))
 
-@inline function (::Type{T})(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{StaticLengthRange, Vararg{StaticLengthRange}}}}) where {T<:StaticArray}
-    sz = Size(size(g))
+@inline function (::Type{T})(g::Base.Generator{<:Base.Iterators.ProductIterator{<:Tuple{StaticNumbers.StaticLengthRange, Vararg{StaticNumbers.StaticLengthRange}}}}) where {T<:StaticArrays.StaticArray}
+    sz = StaticArrays.Size(size(g))
     data = Tuple(g)
     ST = similar_type(T, eltype(data), sz)
     ST <: T || error("Generator yields the wrong type of static array.")
     ST(data)
 end
 
-Base.@propagate_inbounds function Base.convert(::Type{SA}, a::SubArray{T,N,<:AbstractArray{T},<:Tuple{StaticLengthRange, Vararg{StaticLengthRange}}}) where {SA <: StaticArray, T, N}
-    Z = similar_type(SA, T, Size(size(a)))
+Base.@propagate_inbounds function Base.convert(::Type{SA}, a::SubArray{T,N,<:AbstractArray{T},<:Tuple{StaticNumbers.StaticLengthRange, Vararg{StaticNumbers.StaticLengthRange}}}) where {SA <: StaticArrays.StaticArray, T, N}
+    Z = similar_type(SA, T, StaticArrays.Size(size(a)))
     Z <: SA || error("Input array yields the wrong type of static array.")
     Z(Tuple(a))
 end
 
-# TODO: Interface to StaticArrays for multi-dimensional indexing
+# # TODO: Interface to StaticArrays for multi-dimensional indexing
