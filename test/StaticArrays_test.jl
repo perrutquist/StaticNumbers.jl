@@ -18,7 +18,7 @@ end
     @test LengthUnitRange(StaticArrays.SUnitRange(3,4)) === static(3):static(4)
     @test staticlength(StaticArrays.SUnitRange(3,4)) === static(3):static(4)
 
-    for x in ([1, 2, 3, 4], @MVector([1, 2, 3, 4]), [1 3; 2 4], [1 2; 3 4]', @MMatrix([1 3; 2 4]), adjoint(@MMatrix([1 2; 3 4])))
+    for x in ([1, 2, 3, 4], @MVector([1, 2, 3, 4]), [1 3; 2 4], @MMatrix([1 3; 2 4]))
         xi = x[static(1):static(2)]
         v = @MVector([1,2])
         @test xi == v
